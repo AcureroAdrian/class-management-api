@@ -1,0 +1,21 @@
+{
+	"ts-node": {
+		"compilerOptions": {
+			"module": "commonjs"
+		}
+	},
+	"compilerOptions": {
+		"module": "commonjs",
+		"esModuleInterop": true,
+		"rootDir": "./src",
+		"target": "ESNext",
+		"noImplicitAny": true,
+		"moduleResolution": "node",
+		"removeComments": true,
+		"outDir": "dist",
+		"resolveJsonModule": true,
+		"skipLibCheck": true
+	},
+	"include": ["src/**/*"],
+	"exclude": ["node_modules", "dist", "__tests__", "logs"]
+}

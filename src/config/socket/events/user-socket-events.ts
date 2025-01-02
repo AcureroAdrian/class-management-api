@@ -1,0 +1,3 @@
+'use strict'
+
+export const USER_CONNECTED_SOCKET_EVENT = 'USER_CONNECTED_SOCKET_EVENT'

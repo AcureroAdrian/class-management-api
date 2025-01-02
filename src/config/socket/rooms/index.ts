@@ -1,0 +1,1 @@
+export const AUTHORIZED_USERS = 'AUTHORIZED_USERS'
