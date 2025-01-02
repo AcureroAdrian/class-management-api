@@ -5,7 +5,7 @@ import mongoose, { ConnectOptions } from 'mongoose'
 const connectDB = async () => {
 	try {
 		mongoose.set('strictQuery', false)
-		const conn = await mongoose.connect(process.env.MONGO_URI || '', {
+		const conn = await mongoose.connect(process.env.MONGO_URL || '', {
 			useUnifiedTopology: true,
 			useNewUrlParser: true,
 		} as ConnectOptions)
