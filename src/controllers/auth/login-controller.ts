@@ -13,33 +13,32 @@ import { logger } from '../../logger'
 // @route   POST /api/auth/login
 // @access  Public
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
-	const { email = '', password = '' } = req.body
+	const { name = '', lastName = '', dateOfBirth } = req.body
 
-	if (!verifyEmail(email)) {
+	if (!name?.length) {
 		res.status(BAD_REQUEST)
-		throw new Error('Invalid Email Address.')
+		throw new Error('Invalid name.')
+	}
+	if (!lastName?.length) {
+		res.status(BAD_REQUEST)
+		throw new Error('Invalid last name.')
+	}
+	if (!dateOfBirth) {
+		res.status(BAD_REQUEST)
+		throw new Error('Invalid date of birth.')
 	}
 
-	const user = await userRepository.findUserByEmail(email)
+	const user = await userRepository.findUserByCredentials(name, lastName, dateOfBirth)
 
 	if (!user) {
 		res.status(BAD_REQUEST)
-		throw new Error('Invalid Email Address.')
-	}
-
-	const isValidPassword = user.validPassword(password)
-
-	if (!isValidPassword) {
-		res.status(BAD_REQUEST)
-		throw new Error('Invalid Password.')
+		throw new Error('User not found.')
 	}
 
 	if (user.status === 'inactive') {
 		res.status(UNAUTHORIZED)
 		throw new Error('Your account is inactive.')
 	}
-
-	// const age = differenceInYears(new Date(), new Date(user.dateOfBirth))
 
 	const userInfo = {
 		_id: user._id,

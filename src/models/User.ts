@@ -6,7 +6,7 @@ import { TStatus, TUserLevel } from '../utils/common-types'
 
 export interface IUser extends Document {
 	email: string
-	password: string
+	// password: string
 	name: string
 	lastName: string
 	dateOfBirth: Date
@@ -54,10 +54,10 @@ const userSchema = new Schema<IUser>(
 			required: true,
 			trim: true,
 		},
-		password: {
-			type: String,
-			required: true,
-		},
+		// password: {
+		// 	type: String,
+		// 	required: true,
+		// },
 		isAdmin: {
 			type: Boolean,
 			default: false,
