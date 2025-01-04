@@ -70,7 +70,7 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 		throw new Error('Error updating user. Please try again later.')
 	}
 
-	const age = differenceInYears(new Date(), new Date(user.dateOfBirth))
+	// const age = differenceInYears(new Date(), new Date(user.dateOfBirth)) IN FRONT
 
 	const userInfo = {
 		_id: user._id,
@@ -80,7 +80,6 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 		email: user.email,
 		level: user.level,
 		dateOfBirth: user.dateOfBirth,
-		age,
 		createdAt: user.createdAt,
 	}
 

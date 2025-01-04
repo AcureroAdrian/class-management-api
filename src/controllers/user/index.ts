@@ -1,1 +1,3 @@
-export { all } from './all';
+'use strict'
+
+export { all } from './all'

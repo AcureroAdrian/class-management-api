@@ -1,8 +1,8 @@
+'use strict'
+
 import { Document, Model, Schema, model } from 'mongoose'
 import { hashSync, genSaltSync, compareSync } from 'bcrypt'
-
-type TUserLevel = 'novice' | 'beginner' | 'intermediate' | 'elite'
-type TStatus = 'active' | 'inactive' | 'deleted'
+import { TStatus, TUserLevel } from '../utils/common-types'
 
 export interface IUser extends Document {
 	email: string

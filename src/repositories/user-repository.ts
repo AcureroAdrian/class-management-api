@@ -12,7 +12,7 @@ export async function findUserById(userId: string) {
 }
 
 export async function findUserByEmail(email: string) {
-	return User.findOne({ email })
+	return User.findOne({ email, status: 'active' })
 }
 
 export async function saveUser(user: HydratedDocument<IUser>) {

@@ -39,7 +39,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 		throw new Error('Your account is inactive.')
 	}
 
-	const age = differenceInYears(new Date(), new Date(user.dateOfBirth))
+	// const age = differenceInYears(new Date(), new Date(user.dateOfBirth))
 
 	const userInfo = {
 		_id: user._id,
@@ -47,10 +47,8 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 		name: user.name,
 		lastName: user.lastName,
 		email: user.email,
-		userType: user.userType,
 		level: user.level,
 		dateOfBirth: user.dateOfBirth,
-		age,
 		createdAt: user.createdAt,
 	}
 
