@@ -1,21 +1,17 @@
 'use strict'
 
 import { Document, Model, Schema, model } from 'mongoose'
-import { hashSync, genSaltSync, compareSync } from 'bcrypt'
 import { TStatus, TUserLevel } from '../utils/common-types'
 
 export interface IUser extends Document {
-	email: string
-	// password: string
 	name: string
 	lastName: string
-	dateOfBirth: Date
-	level: TUserLevel
-	isAdmin: boolean
+	dateOfBirth?: Date
+	email?: string
+	level?: TUserLevel
 	avatar?: string
+	isAdmin: boolean
 	status: TStatus
-	encryptPassword: (password: string) => string
-	validPassword: (password: string) => boolean
 	createdAt: Date
 	updatedAt: Date
 }
@@ -40,24 +36,15 @@ const userSchema = new Schema<IUser>(
 		},
 		dateOfBirth: {
 			type: Date,
-			required: true,
 		},
 		level: {
 			type: String,
-			required: true,
 			enum: ['novice', 'beginner', 'intermediate', 'elite'],
-			default: 'novice',
 		},
 		email: {
 			type: String,
-			unique: true,
-			required: true,
 			trim: true,
 		},
-		// password: {
-		// 	type: String,
-		// 	required: true,
-		// },
 		isAdmin: {
 			type: Boolean,
 			default: false,
@@ -73,13 +60,5 @@ const userSchema = new Schema<IUser>(
 	},
 	{ timestamps: true },
 )
-
-userSchema.methods.encryptPassword = function (password: string): string {
-	return hashSync(password, genSaltSync(10))
-}
-
-userSchema.methods.validPassword = function (password: string): boolean {
-	return compareSync(password, this.password)
-}
 
 export const User: IUserModel = model<IUser, IUserModel>('User', userSchema)

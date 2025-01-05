@@ -8,7 +8,7 @@ export async function createKarateClass(karateClass: IKarateClassDocument) {
 }
 
 export async function findKarateClasses() {
-	return KarateClass.find({ status: 'active' }, 'name students')
+	return KarateClass.find({ status: 'active' }, 'name students description')
 }
 
 export async function findKarateClassById(classId: string) {
