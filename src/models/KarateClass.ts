@@ -8,15 +8,8 @@ export interface IKarateClass extends Document {
 	minAge: number
 	maxAge: number
 	levels: TUserLevel[]
-	schedule: [
-		{
-			day: TDaysOfWeek
-			startTime: {
-				hour: number
-				minute: number
-			}
-		},
-	]
+	weekDays: TDaysOfWeek[]
+	startTime: { hour: number; minute: number }
 	students: ObjectId[]
 	description: string
 	status: TStatus
@@ -50,25 +43,20 @@ const classSchema = new Schema<IKarateClass>(
 				enum: ['novice', 'beginner', 'intermediate', 'elite'],
 			},
 		],
-		schedule: [
+		weekDays: [
 			{
-				day: {
-					type: String,
-					required: true,
-					enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
-				},
-				startTime: {
-					hour: {
-						type: Number,
-						required: true,
-					},
-					minute: {
-						type: Number,
-						required: true,
-					},
-				},
+				type: String,
+				enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
 			},
 		],
+		startTime: {
+			hour: {
+				type: Number,
+			},
+			minute: {
+				type: Number,
+			},
+		},
 		students: [
 			{
 				type: Schema.Types.ObjectId,

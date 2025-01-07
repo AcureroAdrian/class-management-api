@@ -15,7 +15,7 @@ import { logger } from '../../logger'
 // @route   POST /api/karate-classes/
 // @access  Admin
 export const registerKarateClass = asyncHandler(async (req: IRequest, res: Response) => {
-	const { name, minAge, maxAge, levels, schedule, description } = req.body
+	const { name, minAge, maxAge, levels, weekDays, startTime, description } = req.body
 
 	if (isNaN(minAge)) {
 		res.status(BAD_REQUEST)
@@ -29,9 +29,9 @@ export const registerKarateClass = asyncHandler(async (req: IRequest, res: Respo
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid class levels.')
 	}
-	if (!schedule?.length) {
+	if (!weekDays?.length) {
 		res.status(BAD_REQUEST)
-		throw new Error('Invalid schedule.')
+		throw new Error('Invalid week days.')
 	}
 
 	let validName = name
@@ -39,13 +39,10 @@ export const registerKarateClass = asyncHandler(async (req: IRequest, res: Respo
 	if (!validName) {
 		const ageRange = getAgeRangeByMinAndMax(minAge, maxAge)
 		const levelsNames = levels.map((level: TUserLevel) => shortLevels[level]).join('&')
-		const validSchedule = schedule
-			.map(({ day, startTime }: { day: TDaysOfWeek; startTime: { hour: number; minute: number } }) => {
-				return `${shortDaysOfWeek[day]} ${getTimeStringByStartTime(startTime.hour, startTime.minute)}`
-			})
-			.join(' & ')
+		const validSchedule = weekDays.map((day: TDaysOfWeek) => shortDaysOfWeek[day]).join('&')
+		const time = getTimeStringByStartTime(startTime.hour, startTime.minute)
 
-		validName = `${ageRange} yo ${levelsNames} / ${validSchedule}`
+		validName = `${ageRange} yo ${levelsNames} / ${validSchedule} ${time}`
 	}
 
 	const karateClass = await karateClassRepository.createKarateClass({
@@ -53,7 +50,8 @@ export const registerKarateClass = asyncHandler(async (req: IRequest, res: Respo
 		minAge,
 		maxAge,
 		levels,
-		schedule,
+		weekDays,
+		startTime,
 		description,
 	})
 

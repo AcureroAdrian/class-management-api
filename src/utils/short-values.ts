@@ -8,9 +8,9 @@ type TShortDaysOfWeek = {
 
 export const shortDaysOfWeek: TShortDaysOfWeek = {
 	monday: 'Mon',
-	tuesday: 'Tues',
+	tuesday: 'Tue',
 	wednesday: 'Wed',
-	thursday: 'Thurs',
+	thursday: 'Thu',
 	friday: 'Fri',
 	saturday: 'Sat',
 	sunday: 'Sun',

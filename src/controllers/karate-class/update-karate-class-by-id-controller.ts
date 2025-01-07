@@ -13,7 +13,7 @@ import { logger } from '../../logger'
 // @access  Admin
 export const updateKarateClassById = asyncHandler(async (req: IRequest, res: Response) => {
 	const data = req.body
-	const { name, minAge, maxAge, levels, schedule, description } = data
+	const { name, minAge, maxAge, levels, weekDays, description } = data
 	const { id: karateClassId } = req.params
 
 	if (!mongoIdValidator(karateClassId)) {
@@ -37,9 +37,9 @@ export const updateKarateClassById = asyncHandler(async (req: IRequest, res: Res
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid class levels.')
 	}
-	if (schedule && !schedule?.length) {
+	if (weekDays && !weekDays?.length) {
 		res.status(BAD_REQUEST)
-		throw new Error('Invalid schedule.')
+		throw new Error('Invalid week days of the week.')
 	}
 	if (description && !description?.length) {
 		res.status(BAD_REQUEST)
