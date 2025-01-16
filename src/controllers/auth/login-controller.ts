@@ -1,9 +1,7 @@
 'use strict'
 
 import asyncHandler from 'express-async-handler'
-import { differenceInYears } from 'date-fns'
 import { Request, Response } from 'express'
-import { verifyEmail } from '../../utils/validators/input-validator'
 import * as userRepository from '../../repositories/user-repository'
 import { generateToken } from '../../utils/token-functions'
 import { BAD_REQUEST, UNAUTHORIZED, OK } from '../../utils/http-server-status-codes'
@@ -28,7 +26,13 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 		throw new Error('Invalid date of birth.')
 	}
 
-	const user = await userRepository.findUserByCredentials(name, lastName, dateOfBirth)
+	const validDateOfBirth = {
+		year: new Date(dateOfBirth).getFullYear(),
+		month: new Date(dateOfBirth).getMonth() + 1,
+		day: new Date(dateOfBirth).getDate(),
+	}
+
+	const user = await userRepository.findUserByCredentials(name, lastName, validDateOfBirth)
 
 	if (!user) {
 		res.status(BAD_REQUEST)

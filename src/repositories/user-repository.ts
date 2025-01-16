@@ -23,8 +23,19 @@ export async function findStudentUsers() {
 	return User.find({ status: 'active', isAdmin: false }, 'name lastName')
 }
 
-export async function findUserByCredentials(name: string, lastName: string, dateOfBirth: string) {
-	return User.findOne({ name, lastName, dateOfBirth: new Date(dateOfBirth), status: 'active' })
+export async function findUserByCredentials(
+	name: string,
+	lastName: string,
+	dateOfBirth: { year: number; month: number; day: number },
+) {
+	return User.findOne({
+		name,
+		lastName,
+		'dateOfBirth.year': dateOfBirth.year,
+		'dateOfBirth.month': dateOfBirth.month,
+		'dateOfBirth.day': dateOfBirth.day,
+		status: 'active',
+	})
 }
 
 export async function saveUser(user: HydratedDocument<IUser>) {

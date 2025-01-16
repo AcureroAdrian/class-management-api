@@ -6,7 +6,11 @@ import { TStatus, TUserLevel } from '../utils/common-types'
 export interface IUser extends Document {
 	name: string
 	lastName: string
-	dateOfBirth?: Date
+	dateOfBirth?: {
+		year: number
+		month: number
+		day: number
+	}
 	email?: string
 	level?: TUserLevel
 	avatar?: string
@@ -35,7 +39,15 @@ const userSchema = new Schema<IUser>(
 			lowercase: true,
 		},
 		dateOfBirth: {
-			type: Date,
+			year: {
+				type: Number,
+			},
+			month: {
+				type: Number,
+			},
+			day: {
+				type: Number,
+			},
 		},
 		level: {
 			type: String,

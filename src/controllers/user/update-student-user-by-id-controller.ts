@@ -66,6 +66,15 @@ export const updateStudentuserById = asyncHandler(async (req: IRequest, res: Res
 	Object.keys(data).forEach((key) => {
 		if (!data[key]) return
 
+		if (key === 'dateOfBirth') {
+			student[key] = {
+				year: new Date(data[key]).getFullYear(),
+				month: new Date(data[key]).getMonth() + 1,
+				day: new Date(data[key]).getDate(),
+			}
+			return
+		}
+
 		student[key] = data[key] //FIXED
 	})
 
