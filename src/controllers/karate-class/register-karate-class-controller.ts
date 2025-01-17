@@ -15,7 +15,7 @@ import { logger } from '../../logger'
 // @route   POST /api/karate-classes/
 // @access  Admin
 export const registerKarateClass = asyncHandler(async (req: IRequest, res: Response) => {
-	const { name, minAge, maxAge, levels, weekDays, startTime, description } = req.body
+	const { name, minAge, maxAge, levels, weekDays, students, startTime, description } = req.body
 
 	if (isNaN(minAge)) {
 		res.status(BAD_REQUEST)
@@ -53,6 +53,7 @@ export const registerKarateClass = asyncHandler(async (req: IRequest, res: Respo
 		weekDays,
 		startTime,
 		description,
+		students,
 	})
 
 	if (!karateClass) {
