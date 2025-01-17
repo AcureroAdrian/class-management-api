@@ -12,9 +12,15 @@ export interface IUser extends Document {
 		day: number
 	}
 	email?: string
+	phone?: string
+	notes?: string
 	level?: TUserLevel
 	avatar?: string
 	isAdmin: boolean
+	notifications?: {
+		title: string
+		body: string
+	}[]
 	status: TStatus
 	createdAt: Date
 	updatedAt: Date
@@ -54,6 +60,14 @@ const userSchema = new Schema<IUser>(
 			enum: ['novice', 'beginner', 'intermediate', 'elite'],
 		},
 		email: {
+			type: String,
+			trim: true,
+		},
+		phone: {
+			type: String,
+			trim: true,
+		},
+		notes: {
 			type: String,
 			trim: true,
 		},

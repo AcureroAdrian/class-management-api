@@ -2,7 +2,6 @@
 
 import asyncHandler from 'express-async-handler'
 import { Response } from 'express'
-import { isDate } from 'date-fns'
 import { IRequest } from '../../middleware/auth-middleware'
 import * as userRepository from '../../repositories/user-repository'
 import { BAD_REQUEST, INTERNAL_SERVER_ERROR, OK } from '../../utils/http-server-status-codes'
@@ -16,7 +15,7 @@ import { logger } from '../../logger'
 // @access  Admin
 export const updateStudentuserById = asyncHandler(async (req: IRequest, res: Response) => {
 	const data = req.body
-	const { name, lastName, dateOfBirth, level, email, avatar } = data
+	const { name, lastName, dateOfBirth, level, email, phone, avatar } = data
 	const { id: studentId } = req.params
 
 	if (!mongoIdValidator(studentId)) {
@@ -32,7 +31,7 @@ export const updateStudentuserById = asyncHandler(async (req: IRequest, res: Res
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid student last name.')
 	}
-	if (dateOfBirth && !isDate(new Date(dateOfBirth))) {
+	if (dateOfBirth && (!dateOfBirth.year || !dateOfBirth.month || !dateOfBirth.day)) {
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid date of birth.')
 	}
@@ -48,10 +47,14 @@ export const updateStudentuserById = asyncHandler(async (req: IRequest, res: Res
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid avatar.')
 	}
+	if (phone && !phone?.length) {
+		res.status(BAD_REQUEST)
+		throw new Error('Invalid phone.')
+	}
 
-	const existsEmail = await userRepository.findUserByEmail(email)
+	const existsEmail = email && (await userRepository.findUserByEmail(email))
 
-	if (existsEmail) {
+	if (existsEmail && String(existsEmail?._id) !== studentId) {
 		res.status(BAD_REQUEST)
 		throw new Error('Email already exists.')
 	}
@@ -65,15 +68,6 @@ export const updateStudentuserById = asyncHandler(async (req: IRequest, res: Res
 
 	Object.keys(data).forEach((key) => {
 		if (!data[key]) return
-
-		if (key === 'dateOfBirth') {
-			student[key] = {
-				year: new Date(data[key]).getFullYear(),
-				month: new Date(data[key]).getMonth() + 1,
-				day: new Date(data[key]).getDate(),
-			}
-			return
-		}
 
 		student[key] = data[key] //FIXED
 	})
