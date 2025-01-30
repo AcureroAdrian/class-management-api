@@ -5,6 +5,7 @@ import {
 	deleteKarateClassById,
 	getKarateClassById,
 	getKarateClasses,
+	getkarateClassToAdminAttendance,
 	registerKarateClass,
 	updateKarateClassById,
 } from '../controllers/karate-class'
@@ -12,6 +13,7 @@ import {
 const router = Router()
 
 router.route('/').get(protect, forUserAdmin, getKarateClasses).post(protect, forUserAdmin, registerKarateClass)
+router.route('/admin/attendance').get(protect, forUserAdmin, getkarateClassToAdminAttendance)
 router
 	.route('/:id')
 	.get(protect, getKarateClassById)

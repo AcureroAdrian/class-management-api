@@ -15,6 +15,10 @@ export async function findKarateClassById(classId: string) {
 	return KarateClass.findById(classId)
 }
 
+export async function findValidKarateClasses() {
+	return KarateClass.find({ status: 'active', students: { $ne: [] } }, 'name description startTime weekDays')
+}
+
 export async function saveKarateClass(karateClass: HydratedDocument<IKarateClass>) {
 	return karateClass.save()
 }
