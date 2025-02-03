@@ -2,9 +2,7 @@
 
 import { TDaysOfWeek, TUserLevel } from './common-types'
 
-type TShortDaysOfWeek = {
-	[K in TDaysOfWeek]: string
-}
+type TShortDaysOfWeek = Record<TDaysOfWeek, string>
 
 export const shortDaysOfWeek: TShortDaysOfWeek = {
 	monday: 'Mon',
@@ -16,9 +14,7 @@ export const shortDaysOfWeek: TShortDaysOfWeek = {
 	sunday: 'Sun',
 }
 
-type TShortLevels = {
-	[K in TUserLevel]: string
-}
+type TShortLevels = Record<TUserLevel, string>
 
 export const shortLevels: TShortLevels = {
 	novice: 'Nov',

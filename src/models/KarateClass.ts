@@ -21,7 +21,7 @@ export interface IKarateClassDocument extends Partial<IKarateClass> {}
 
 interface IKarateClassModel extends Model<IKarateClass> {}
 
-const classSchema = new Schema<IKarateClass>(
+const karateClassSchema = new Schema<IKarateClass>(
 	{
 		name: {
 			type: String,
@@ -75,4 +75,4 @@ const classSchema = new Schema<IKarateClass>(
 	{ timestamps: true },
 )
 
-export const KarateClass: IKarateClassModel = model<IKarateClass, IKarateClassModel>('KarateClass', classSchema)
+export const KarateClass: IKarateClassModel = model<IKarateClass, IKarateClassModel>('KarateClass', karateClassSchema)
