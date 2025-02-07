@@ -8,7 +8,7 @@ import { BAD_REQUEST, INTERNAL_SERVER_ERROR, OK } from '../../utils/http-server-
 import { mongoIdValidator } from '../../utils/validators/input-validator'
 import { logger } from '../../logger'
 
-// @desc    Update karate class by id
+// @desc    PATCH update karate class by id
 // @route   PATCH /api/karate-classes/:id
 // @access  Admin
 export const updateKarateClassById = asyncHandler(async (req: IRequest, res: Response) => {

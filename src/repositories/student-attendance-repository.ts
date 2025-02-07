@@ -33,6 +33,14 @@ export async function findStudentAttendanceByDay(year: number, month: number, da
 		{
 			$unwind: '$karateClass',
 		},
+		{
+			$lookup: {
+				from: 'users',
+				localField: 'attendance.student',
+				foreignField: '_id',
+				as: 'students',
+			},
+		},
 	])
 }
 
