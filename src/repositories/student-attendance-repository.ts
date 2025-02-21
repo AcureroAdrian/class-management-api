@@ -146,7 +146,7 @@ export async function findStudentAttendanceByClassAndDates(
 		},
 		{
 			$match: {
-				karateClass: new ObjectId(classId),
+				karateClass: classId === 'all' ? { $exists: true } : new ObjectId(classId),
 				$expr: {
 					$and: [
 						{
@@ -200,7 +200,7 @@ export async function findStudentAttendanceByClassAndDates(
 		},
 		{
 			$sort: {
-				attendanceDate: 1,
+				attendanceDate: -1,
 			},
 		},
 		{
@@ -218,9 +218,11 @@ export async function findStudentAttendanceByClassAndDates(
 	])
 }
 
-export async function findStudentAttendanceInAllClassesAndDates(
+export async function findStudentAttendanceByDatesAndStudentId(
 	startDate: { year: number; month: number; day: number },
 	endDate: { year: number; month: number; day: number },
+	classId: string,
+	studentId: string,
 ) {
 	return StudentAttendance.aggregate([
 		{
@@ -250,6 +252,7 @@ export async function findStudentAttendanceInAllClassesAndDates(
 		},
 		{
 			$match: {
+				karateClass: classId === 'all' ? { $exists: true } : new ObjectId(classId),
 				$expr: {
 					$and: [
 						{
@@ -277,45 +280,32 @@ export async function findStudentAttendanceInAllClassesAndDates(
 			$unwind: '$attendance',
 		},
 		{
+			$match: {
+				'attendance.student': new ObjectId(studentId),
+			},
+		},
+		{
 			$lookup: {
 				from: 'users',
 				localField: 'attendance.student',
 				foreignField: '_id',
-				as: 'attendance.student',
+				as: 'student',
 			},
 		},
 		{
-			$unwind: '$attendance.student',
-		},
-		{
-			$group: {
-				_id: '$_id',
-				karateClass: { $first: '$karateClass._id' },
-				karateClassName: {
-					$first: '$karateClass.name',
-				},
-				date: { $first: '$date' },
-				attendance: { $push: '$attendance' },
-				attendanceDate: {
-					$first: '$attendanceDate',
-				},
-			},
+			$unwind: '$student',
 		},
 		{
 			$sort: {
-				attendanceDate: 1,
+				attendanceDate: -1,
 			},
 		},
 		{
-			$group: {
-				_id: '$karateClass',
-				karateClassName: { $first: '$karateClassName' },
-				attendances: {
-					$push: {
-						date: '$date',
-						attendance: '$attendance',
-					},
-				},
+			$project: {
+				karateClassName: '$karateClass.name',
+				date: true,
+				student: true,
+				attendanceStatus: '$attendance.attendanceStatus',
 			},
 		},
 	])

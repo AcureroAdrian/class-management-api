@@ -5,3 +5,4 @@ export { getStudentAttendancesByDay } from './get-student-attendances-by-day-con
 export { registerStudentAttendance } from './register-student-attendance-controller'
 export { updateStudentAttendanceById } from './update-student-attendance-by-id-controller'
 export { getClassReportByClassIdForAdmin } from './get-class-report-by-class-id-for-admin-controller'
+export { getStudentReportForAdmin } from './get-student-report-for-admin-controller'
