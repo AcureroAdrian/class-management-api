@@ -11,7 +11,37 @@ export async function createKarateClass(karateClass: IKarateClassDocument) {
 }
 
 export async function findKarateClasses() {
-	return KarateClass.find({ status: 'active' }, 'name students description')
+	return KarateClass.aggregate([
+		{
+			$match: {
+				status: 'active',
+			},
+		},
+		{
+			$lookup: {
+				from: 'users',
+				localField: 'students',
+				foreignField: '_id',
+				pipeline: [
+					{
+						$match: {
+							status: 'active',
+							isTeacher: false,
+							isAdmin: false,
+						},
+					},
+				],
+				as: 'students',
+			},
+		},
+		{
+			$project: {
+				name: true,
+				students: true,
+				description: true,
+			},
+		},
+	])
 }
 
 export async function findKarateClassById(classId: string) {

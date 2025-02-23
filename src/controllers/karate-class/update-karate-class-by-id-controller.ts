@@ -57,13 +57,17 @@ export const updateKarateClassById = asyncHandler(async (req: IRequest, res: Res
 		throw new Error('Class not found.')
 	}
 
+	Object.keys(data).forEach((key) => {
+		karateClass[key] = data[key] //FIXED
+	})
+
 	//Class students validation
 	if (Boolean(data?.students) || Boolean(data?.startTime) || weekDays || location) {
 		const classesInTimeRange = await karateClassRepository.findClassesInTimeRangeAndLocation(
-			karateClass.location || 'spring',
-			data.startTime.hour || 0,
-			data.startTime.minute || 0,
-			data.weekDays,
+			karateClass?.location || 'spring',
+			karateClass?.startTime?.hour || 0,
+			karateClass?.startTime?.minute || 0,
+			karateClass?.weekDays,
 		)
 
 		const anotherClasses = classesInTimeRange?.filter(
@@ -73,25 +77,21 @@ export const updateKarateClassById = asyncHandler(async (req: IRequest, res: Res
 		if (anotherClasses?.length > 1) {
 			res.status(BAD_REQUEST)
 			throw new Error(
-				`Class cannot be updated because there are already 2 classes for that same day, time and location. Classes: ${anotherClasses?.[0]?.name}, ${anotherClasses?.[1]?.name}.`,
+				`Class cannot be updated because there are already 2 classes for that same day, time and location. Classes: ${anotherClasses?.[0]?.className}, ${anotherClasses?.[1]?.className}.`,
 			)
 		}
 
 		const [anotherClass] = anotherClasses
 
-		if ((anotherClass?.students || 0) + data.students.length > 40) {
+		if ((anotherClass?.students || 0) + karateClass?.students?.length > 40) {
 			res.status(BAD_REQUEST)
 			throw new Error(
 				anotherClass
-					? `The number of students for the schedule exceeds 40 students. Class at the same time: ${anotherClass?.name}`
+					? `The number of students for the schedule exceeds 40 students. Class at the same time: ${anotherClass?.className} (${anotherClass?.students})`
 					: 'The number of students for the schedule exceeds 40 students.',
 			)
 		}
 	}
-
-	Object.keys(data).forEach((key) => {
-		karateClass[key] = data[key] //FIXED
-	})
 
 	const updatedKarateClass = await karateClassRepository.saveKarateClass(karateClass)
 
