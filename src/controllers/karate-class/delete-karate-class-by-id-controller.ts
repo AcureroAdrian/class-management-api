@@ -34,5 +34,5 @@ export const deleteKarateClassById = asyncHandler(async (req: IRequest, res: Res
 		throw new Error('Error deleting class.')
 	}
 
-	res.status(OK).json(updatedKarateClass)
+	res.status(OK).json({ karateClassId: id })
 })

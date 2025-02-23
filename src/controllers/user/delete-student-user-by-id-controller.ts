@@ -34,5 +34,5 @@ export const deleteStudentUserById = asyncHandler(async (req: IRequest, res: Res
 		throw new Error('Error deleting student.')
 	}
 
-	res.status(OK).json(updatedStudent)
+	res.status(OK).json({ studentId: id })
 })
