@@ -16,7 +16,7 @@ export const getStudentUsers = asyncHandler(async (req: IRequest, res: Response)
 
 	if (!students?.length) {
 		res.status(NOT_FOUND)
-		throw new Error('No students found.')
+		throw new Error(mode === 'teachers' ? 'No teachers found.' : 'No students found.')
 	}
 
 	res.status(OK).json(students)
