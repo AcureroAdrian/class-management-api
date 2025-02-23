@@ -13,7 +13,7 @@ import { logger } from '../../logger'
 // @access  Admin
 export const updateKarateClassById = asyncHandler(async (req: IRequest, res: Response) => {
 	const data = req.body
-	const { name, minAge, maxAge, levels, weekDays, description } = data
+	const { name, minAge, maxAge, levels, weekDays, description, location } = data
 	const { id: karateClassId } = req.params
 
 	if (!mongoIdValidator(karateClassId)) {
@@ -44,6 +44,10 @@ export const updateKarateClassById = asyncHandler(async (req: IRequest, res: Res
 	if (description && !description?.length) {
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid description.')
+	}
+	if (location && !location?.length) {
+		res.status(BAD_REQUEST)
+		throw new Error('Invalid location.')
 	}
 
 	const karateClass = await karateClassRepository.findKarateClassById(karateClassId)

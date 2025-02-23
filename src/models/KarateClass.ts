@@ -1,7 +1,7 @@
 'use strict'
 
 import { Document, Model, ObjectId, Schema, model } from 'mongoose'
-import { TDaysOfWeek, TStatus, TUserLevel } from '../utils/common-types'
+import { TDaysOfWeek, TLocation, TStatus, TUserLevel } from '../utils/common-types'
 
 export interface IKarateClass extends Document {
 	name: string
@@ -11,6 +11,7 @@ export interface IKarateClass extends Document {
 	weekDays: TDaysOfWeek[]
 	startTime: { hour: number; minute: number }
 	students: ObjectId[]
+	location?: TLocation
 	description: string
 	status: TStatus
 	createdAt: Date
@@ -63,6 +64,10 @@ const karateClassSchema = new Schema<IKarateClass>(
 				ref: 'User',
 			},
 		],
+		location: {
+			type: String,
+			enum: ['spring', 'katy'],
+		},
 		description: {
 			type: String,
 		},

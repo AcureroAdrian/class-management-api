@@ -15,7 +15,7 @@ import { logger } from '../../logger'
 // @route   POST /api/karate-classes/
 // @access  Admin
 export const registerKarateClass = asyncHandler(async (req: IRequest, res: Response) => {
-	const { name, minAge, maxAge, levels, weekDays, students, startTime, description } = req.body
+	const { name, minAge, maxAge, levels, weekDays, students, startTime, description, location } = req.body
 
 	if (isNaN(minAge)) {
 		res.status(BAD_REQUEST)
@@ -32,6 +32,10 @@ export const registerKarateClass = asyncHandler(async (req: IRequest, res: Respo
 	if (!weekDays?.length) {
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid week days.')
+	}
+	if (!location?.length) {
+		res.status(BAD_REQUEST)
+		throw new Error('Invalid location.')
 	}
 
 	let validName = name
@@ -54,6 +58,7 @@ export const registerKarateClass = asyncHandler(async (req: IRequest, res: Respo
 		startTime,
 		description,
 		students,
+		location,
 	})
 
 	if (!karateClass) {
