@@ -1,8 +1,10 @@
 'use strict'
 
-import { HydratedDocument } from 'mongoose'
+import mongoose, { HydratedDocument } from 'mongoose'
 import { KarateClass, IKarateClass, IKarateClassDocument } from '../models/KarateClass'
-import { TDaysOfWeek } from '../utils/common-types'
+import { TDaysOfWeek, TUserLevel } from '../utils/common-types'
+
+const { ObjectId } = mongoose.Types
 
 export async function createKarateClass(karateClass: IKarateClassDocument) {
 	return KarateClass.create(karateClass)
@@ -21,6 +23,30 @@ export async function findKarateClassesByWeekDay(weekDay: TDaysOfWeek) {
 		{ status: 'active', weekDays: weekDay, students: { $gt: [] } },
 		'startTime students name description',
 	).populate('students')
+}
+
+export async function findKarateClassesForStudent(age: number, level: TUserLevel) {
+	return KarateClass.aggregate([
+		{
+			$match: {
+				status: 'active',
+				minAge: { $lte: age },
+				maxAge: { $gte: age },
+				levels: level,
+			},
+		},
+	])
+}
+
+export async function findKarateClassesByStudentId(studentId: string) {
+	return KarateClass.aggregate([
+		{
+			$match: {
+				status: 'active',
+				students: new ObjectId(studentId),
+			},
+		},
+	])
 }
 
 export async function findValidKarateClasses() {

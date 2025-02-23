@@ -53,6 +53,8 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 		level: user.level,
 		dateOfBirth: user.dateOfBirth,
 		createdAt: user.createdAt,
+		isAdmin: user.isAdmin,
+		isTeacher: user.isTeacher,
 	}
 
 	logger.log({
