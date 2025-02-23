@@ -7,10 +7,12 @@ import * as userRepository from '../../repositories/user-repository'
 import { NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 
 // @desc    Get all student users
-// @route   GET /api/users/
+// @route   GET /api/users?mode=teachers|students
 // @access  Admin
 export const getStudentUsers = asyncHandler(async (req: IRequest, res: Response) => {
-	const students = await userRepository.findStudentUsers()
+	const { mode } = req.query
+
+	const students = await userRepository.findStudentUsers(mode as 'teachers' | 'students')
 
 	if (!students?.length) {
 		res.status(NOT_FOUND)

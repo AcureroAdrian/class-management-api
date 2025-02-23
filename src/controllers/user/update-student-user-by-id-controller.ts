@@ -67,7 +67,7 @@ export const updateStudentuserById = asyncHandler(async (req: IRequest, res: Res
 	}
 
 	Object.keys(data).forEach((key) => {
-		if (!data[key]) return
+		// if (!data[key]) return
 
 		student[key] = data[key] //FIXED
 	})

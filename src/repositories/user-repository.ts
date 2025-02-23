@@ -19,8 +19,8 @@ export async function findUserByEmail(email: string) {
 	return User.findOne({ email, status: 'active' })
 }
 
-export async function findStudentUsers() {
-	return User.find({ status: 'active', isAdmin: false }, 'name lastName')
+export async function findStudentUsers(mode: 'teachers' | 'students') {
+	return User.find({ status: 'active', isAdmin: false, isTeacher: mode === 'teachers' }, 'name lastName')
 }
 
 export async function findUserByCredentials(
