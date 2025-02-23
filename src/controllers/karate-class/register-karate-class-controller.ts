@@ -38,6 +38,32 @@ export const registerKarateClass = asyncHandler(async (req: IRequest, res: Respo
 		throw new Error('Invalid location.')
 	}
 
+	//Class students validation
+	const classesInTimeRange = await karateClassRepository.findClassesInTimeRangeAndLocation(
+		location || 'spring',
+		startTime.hour || 0,
+		startTime.minute || 0,
+		weekDays,
+	)
+
+	if (classesInTimeRange?.length > 1) {
+		res.status(BAD_REQUEST)
+		throw new Error(
+			`Class cannot be updated because there are already 2 classes for that same day, time and location. Classes: ${classesInTimeRange?.[0]?.name}, ${classesInTimeRange?.[1]?.name}.`,
+		)
+	}
+
+	const [anotherClass] = classesInTimeRange
+
+	if ((anotherClass?.students || 0) + students.length > 40) {
+		res.status(BAD_REQUEST)
+		throw new Error(
+			anotherClass
+				? `The number of students for the schedule exceeds 40 students. Class at the same time: ${anotherClass?.name}`
+				: 'The number of students for the schedule exceeds 40 students.',
+		)
+	}
+
 	let validName = name
 
 	if (!validName) {

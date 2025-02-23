@@ -2,7 +2,7 @@
 
 import mongoose, { HydratedDocument } from 'mongoose'
 import { KarateClass, IKarateClass, IKarateClassDocument } from '../models/KarateClass'
-import { TDaysOfWeek, TUserLevel } from '../utils/common-types'
+import { TDaysOfWeek, TLocation, TUserLevel } from '../utils/common-types'
 
 const { ObjectId } = mongoose.Types
 
@@ -44,6 +44,47 @@ export async function findKarateClassesByStudentId(studentId: string) {
 			$match: {
 				status: 'active',
 				students: new ObjectId(studentId),
+			},
+		},
+	])
+}
+
+export async function findClassesInTimeRangeAndLocation(
+	location: TLocation,
+	hour: number,
+	minute: number,
+	weekDays: TDaysOfWeek[],
+) {
+	return KarateClass.aggregate([
+		{
+			$match: {
+				status: 'active',
+				location: location,
+				'startTime.hour': hour,
+				'startTime.minute': minute,
+				students: { $gt: [] },
+				weekDays: { $in: weekDays },
+			},
+		},
+		{
+			$lookup: {
+				from: 'users',
+				localField: 'students',
+				foreignField: '_id',
+				pipeline: [
+					{
+						$match: {
+							status: 'active',
+						},
+					},
+				],
+				as: 'students',
+			},
+		},
+		{
+			$project: {
+				className: '$name',
+				students: { $size: '$students' },
 			},
 		},
 	])
