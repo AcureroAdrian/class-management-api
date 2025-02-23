@@ -54,8 +54,6 @@ export const updateKarateClassById = asyncHandler(async (req: IRequest, res: Res
 	}
 
 	Object.keys(data).forEach((key) => {
-		if (!data[key]) return
-
 		karateClass[key] = data[key] //FIXED
 	})
 

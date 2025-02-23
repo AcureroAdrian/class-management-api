@@ -12,30 +12,31 @@ import { logger } from '../../logger'
 // @route   POST /api/users/
 // @access  Admin
 export const registerStudentUsers = asyncHandler(async (req: IRequest, res: Response) => {
-	const { students = [] } = req.body
+	const { name, lastName, dateOfBirth, level, phone, email, notes } = req.body
 
-	if (students.some((student: IUser) => !student?.name)) {
+	if (!name?.length) {
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid name.')
 	}
-	if (students.some((student: IUser) => !student?.lastName)) {
+	if (!lastName?.length) {
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid last name.')
 	}
 
-	const newStudents = await userRepository.createManyStudents(students)
-
-	if (!newStudents?.length) {
-		res.status(INTERNAL_SERVER_ERROR)
-		throw new Error('Error creating students.')
-	}
-
-	newStudents.forEach((student) => {
-		logger.log({
-			level: 'info',
-			message: `Student: ${student.name} ${student.lastName} registered.`,
-		})
+	const newStudent = await userRepository.createUser({
+		name,
+		lastName,
+		dateOfBirth,
+		level,
+		phone,
+		email,
+		notes,
 	})
 
-	res.status(CREATED).json(newStudents)
+	if (!newStudent) {
+		res.status(INTERNAL_SERVER_ERROR)
+		throw new Error('Error creating student.')
+	}
+
+	res.status(CREATED).json(newStudent)
 })
