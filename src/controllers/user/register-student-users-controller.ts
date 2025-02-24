@@ -23,6 +23,13 @@ export const registerStudentUsers = asyncHandler(async (req: IRequest, res: Resp
 		throw new Error('Invalid last name.')
 	}
 
+	const existsUser = await userRepository.findUserByCredentials(name, lastName, dateOfBirth)
+
+	if (existsUser) {
+		res.status(BAD_REQUEST)
+		throw new Error('User already exists.')
+	}
+
 	const newStudent = await userRepository.createUser({
 		name,
 		lastName,
