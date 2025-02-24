@@ -1,5 +1,6 @@
 'use strict'
 
+export { bookingRecoveryClassById } from './booking-recovery-class-by-id-controller'
 export { deleteKarateClassById } from './delete-karate-class-by-id-controller'
 export { getKarateClassById } from './get-karate-class-by-id-controller'
 export { getKarateClasses } from './get-karate-classes-controller'

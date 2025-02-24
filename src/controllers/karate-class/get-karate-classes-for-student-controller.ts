@@ -2,9 +2,10 @@
 
 import asyncHandler from 'express-async-handler'
 import { Response } from 'express'
-import { differenceInYears } from 'date-fns'
+import { differenceInYears, format, subDays } from 'date-fns'
 import { IRequest } from '../../middleware/auth-middleware'
 import * as karateClassRepository from '../../repositories/karate-class-repository'
+import * as attendanceRepository from '../../repositories/student-attendance-repository'
 import * as userRepository from '../../repositories/user-repository'
 import { NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 
@@ -24,12 +25,26 @@ export const getKarateClassesForStudent = asyncHandler(async (req: IRequest, res
 	const { year, month, day } = student.dateOfBirth
 	const age = differenceInYears(new Date(), new Date(year, month - 1, day))
 
-	const classes = await karateClassRepository.findKarateClassesForStudent(age, student.level)
+	const karateClasses = await karateClassRepository.findKarateClassesForStudent(age, student.level, userId)
 
-	if (!classes?.length) {
+	if (!karateClasses?.length) {
 		res.status(NOT_FOUND)
 		throw new Error('No classes found.')
 	}
 
-	res.status(OK).json(classes)
+	//recovery classes
+	const absents = await attendanceRepository.findAbsentsByStudentId(userId)
+
+	const response = {
+		karateClasses: karateClasses.map((karateClass) => {
+			const absent = absents?.find((absent) => String(absent?.recoveryClass?.karateClass) === String(karateClass?._id))
+			return {
+				...karateClass,
+				recoveryClass: absent?.recoveryClass,
+			}
+		}),
+		absents,
+	}
+
+	res.status(OK).json(response)
 })

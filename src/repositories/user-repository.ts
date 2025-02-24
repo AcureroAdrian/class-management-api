@@ -20,7 +20,10 @@ export async function findUserByEmail(email: string) {
 }
 
 export async function findStudentUsers(mode: 'teachers' | 'students') {
-	return User.find({ status: 'active', isAdmin: false, isTeacher: mode === 'teachers' }, 'name lastName')
+	return User.find(
+		{ status: 'active', isSuper: false, isAdmin: mode === 'teachers', isTeacher: mode === 'teachers' },
+		'name lastName',
+	)
 }
 
 export async function findUserByCredentials(

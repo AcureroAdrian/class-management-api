@@ -1,7 +1,7 @@
 'use strict'
 
-import mongoose from 'mongoose'
-import { HydratedDocument } from 'mongoose'
+import { format } from 'date-fns'
+import mongoose, { HydratedDocument } from 'mongoose'
 import { StudentAttendance, IStudentAttendance, IStudentAttendanceDocument } from '../models/StudentAttendance'
 const { ObjectId } = mongoose.Types
 
@@ -335,6 +335,103 @@ export async function findStudentAttendanceByDay(year: number, month: number, da
 				localField: 'attendance.student',
 				foreignField: '_id',
 				as: 'students',
+			},
+		},
+	])
+}
+
+export async function findAbsentsByStudentId(studentId: string) {
+	const [year, month, day] = format(new Date(), 'yyyy-MM-dd').split('-')
+	return StudentAttendance.aggregate([
+		{
+			$addFields: {
+				today: {
+					$dateFromParts: {
+						year: Number(year),
+						month: Number(month),
+						day: Number(day),
+					},
+				},
+				attendanceDate: {
+					$dateFromParts: {
+						year: '$date.year',
+						month: '$date.month',
+						day: '$date.day',
+					},
+				},
+			},
+		},
+		{
+			$match: {
+				$expr: {
+					$and: [
+						{
+							$eq: ['$date.year', Number(year)],
+						},
+						{
+							$lt: ['$attendanceDate', '$today'],
+						},
+					],
+				},
+			},
+		},
+		{
+			$unwind: '$attendance',
+		},
+		{
+			$match: {
+				'attendance.student': new ObjectId(studentId),
+				'attendance.attendanceStatus': 'absent',
+			},
+		},
+		{
+			$lookup: {
+				from: 'recoveryclasses',
+				localField: '_id',
+				foreignField: 'attendance',
+				let: {
+					studentId: { $toString: '$attendance.student' },
+				},
+				pipeline: [
+					{
+						$addFields: {
+							today: {
+								$dateFromParts: {
+									year: Number(year),
+									month: Number(month),
+									day: Number(day),
+								},
+							},
+							recoveryDate: {
+								$dateFromParts: {
+									year: '$date.year',
+									month: '$date.month',
+									day: '$date.day',
+								},
+							},
+						},
+					},
+					{
+						$match: {
+							status: 'active',
+							$expr: {
+								$and: [{ $gt: ['$recoveryDate', '$today'] }, { $eq: [{ $toString: '$student' }, '$$studentId'] }],
+							},
+						},
+					},
+				],
+				as: 'recoveryClass',
+			},
+		},
+		{
+			$unwind: {
+				path: '$recoveryClass',
+				preserveNullAndEmptyArrays: true,
+			},
+		},
+		{
+			$sort: {
+				attendanceDate: 1,
 			},
 		},
 	])

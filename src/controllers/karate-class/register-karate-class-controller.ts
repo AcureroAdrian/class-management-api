@@ -55,7 +55,7 @@ export const registerKarateClass = asyncHandler(async (req: IRequest, res: Respo
 
 	const [anotherClass] = classesInTimeRange
 
-	if ((anotherClass?.students || 0) + students.length > 40) {
+	if ((anotherClass?.students || 0) + (anotherClass?.recoveryClasses || 0) + students.length > 40) {
 		res.status(BAD_REQUEST)
 		throw new Error(
 			anotherClass

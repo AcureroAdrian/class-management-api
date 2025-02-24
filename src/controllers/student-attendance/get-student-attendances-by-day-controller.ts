@@ -43,7 +43,10 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 		validClasses.forEach((karateClass) => {
 			const { hour, minute } = karateClass?.startTime
 			const existsAttendance = savedStudentAttendance?.find(
-				(attendance) => attendance.date.hour === hour && attendance.date.minute === minute,
+				(attendance) =>
+					attendance?.date?.hour === hour &&
+					attendance?.date?.minute === minute &&
+					String(attendance?.karateClass?._id) === String(karateClass?._id),
 			)
 
 			if (existsAttendance) return

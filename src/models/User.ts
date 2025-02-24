@@ -16,6 +16,7 @@ export interface IUser extends Document {
 	notes?: string
 	level?: TUserLevel
 	avatar?: string
+	isSuper: boolean
 	isAdmin: boolean
 	isTeacher: boolean
 	notifications?: {
@@ -71,6 +72,10 @@ const userSchema = new Schema<IUser>(
 		notes: {
 			type: String,
 			trim: true,
+		},
+		isSuper: {
+			type: Boolean,
+			default: false,
 		},
 		isAdmin: {
 			type: Boolean,

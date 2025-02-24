@@ -13,6 +13,7 @@ export interface IKarateClass extends Document {
 	students: ObjectId[]
 	location?: TLocation
 	description: string
+	recoveryClasses: ObjectId[]
 	status: TStatus
 	createdAt: Date
 	updatedAt: Date
@@ -71,6 +72,12 @@ const karateClassSchema = new Schema<IKarateClass>(
 		description: {
 			type: String,
 		},
+		recoveryClasses: [
+			{
+				type: Schema.Types.ObjectId,
+				ref: 'RecoveryClass',
+			},
+		],
 		status: {
 			type: String,
 			enum: ['active', 'inactive', 'deleted'],
