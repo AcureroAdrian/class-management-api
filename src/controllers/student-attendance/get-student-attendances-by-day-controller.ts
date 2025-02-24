@@ -6,6 +6,7 @@ import { IRequest } from '../../middleware/auth-middleware'
 import { IKarateClass } from '../../models/KarateClass'
 import * as karateClassRepository from '../../repositories/karate-class-repository'
 import * as studentAttendanceRepository from '../../repositories/student-attendance-repository'
+import * as holidayRepository from '../../repositories/holiday-repository'
 import getNameOfWeekDayByDay from '../../utils/get-name-of-week-day-by-day'
 import { NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 import { subDays } from 'date-fns'
@@ -74,5 +75,7 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 		throw new Error('No attendance found.')
 	}
 
-	res.status(OK).json(totalAttendance)
+	const holiday = await holidayRepository.findHolidayByDate(validYear, validMonth, validDay)
+
+	res.status(OK).json({ attendances: totalAttendance, holiday })
 })
