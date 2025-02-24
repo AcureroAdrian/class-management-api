@@ -12,7 +12,7 @@ import { logger } from '../../logger'
 // @route   POST /api/users/
 // @access  Admin
 export const registerStudentUsers = asyncHandler(async (req: IRequest, res: Response) => {
-	const { name, lastName, dateOfBirth, level, phone, email, notes, isTeacher } = req.body
+	const { name, lastName, dateOfBirth, level, phone, email, notes, isTeacher, isAdmin } = req.body
 
 	if (!name?.length) {
 		res.status(BAD_REQUEST)
@@ -32,6 +32,7 @@ export const registerStudentUsers = asyncHandler(async (req: IRequest, res: Resp
 		email,
 		notes,
 		isTeacher,
+		isAdmin,
 	})
 
 	if (!newStudent) {

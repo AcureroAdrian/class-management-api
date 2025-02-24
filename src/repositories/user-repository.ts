@@ -21,7 +21,13 @@ export async function findUserByEmail(email: string) {
 
 export async function findStudentUsers(mode: 'teachers' | 'students') {
 	return User.find(
-		{ status: 'active', isSuper: false, isAdmin: mode === 'teachers', isTeacher: mode === 'teachers' },
+		{
+			status: 'active',
+			isSuper: false,
+			...(mode === 'teachers'
+				? { $or: [{ isTeacher: true }, { isAdmin: true }] }
+				: { $and: [{ isTeacher: false }, { isAdmin: false }] }),
+		},
 		'name lastName',
 	)
 }
