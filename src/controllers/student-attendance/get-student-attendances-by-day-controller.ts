@@ -39,7 +39,11 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 	if (selectedDay > today) {
 		const weekDay = getNameOfWeekDayByDay(selectedDay)
 
-		const validClasses: IKarateClass[] = await karateClassRepository.findKarateClassesByWeekDay(weekDay)
+		const validClasses: IKarateClass[] = await karateClassRepository.findKarateClassesByWeekDay(weekDay, {
+			year: validYear,
+			month: validMonth,
+			day: validDay,
+		})
 
 		validClasses.forEach((karateClass) => {
 			const { hour, minute } = karateClass?.startTime

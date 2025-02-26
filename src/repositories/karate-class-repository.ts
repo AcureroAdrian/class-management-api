@@ -1,7 +1,7 @@
 'use strict'
 
 import { format } from 'date-fns'
-import mongoose, { HydratedDocument, ObjectId } from 'mongoose'
+import mongoose, { HydratedDocument } from 'mongoose'
 import { KarateClass, IKarateClass, IKarateClassDocument } from '../models/KarateClass'
 import { TDaysOfWeek, TLocation, TUserLevel } from '../utils/common-types'
 
@@ -50,7 +50,10 @@ export async function findKarateClassById(classId: string) {
 	return KarateClass.findById(classId)
 }
 
-export async function findKarateClassesByWeekDay(weekDay: TDaysOfWeek) {
+export async function findKarateClassesByWeekDay(
+	weekDay: TDaysOfWeek,
+	date: { year: number; month: number; day: number },
+) {
 	return KarateClass.aggregate([
 		{
 			$match: {
@@ -86,6 +89,7 @@ export async function findKarateClassesByWeekDay(weekDay: TDaysOfWeek) {
 					{
 						$match: {
 							status: 'active',
+							$and: [{ 'date.year': date.year }, { 'date.month': date.month }, { 'date.day': date.day }],
 						},
 					},
 					{
