@@ -6,7 +6,7 @@ import { TAttendanceStatus, TStatus } from '../utils/common-types'
 export interface IAttendance {
 	student: ObjectId
 	attendanceStatus: TAttendanceStatus
-	observations: string
+	observations?: string
 }
 
 export interface IStudentAttendance extends Document {
