@@ -12,8 +12,20 @@ import { logger } from '../../logger'
 // @route   POST /api/users/
 // @access  Admin
 export const registerStudentUsers = asyncHandler(async (req: IRequest, res: Response) => {
-	const { name, lastName, dateOfBirth, level, phone, email, notes, isTeacher, isAdmin } = req.body
+	const { userId, name, lastName, dateOfBirth, level, phone, email, notes, isTeacher, isAdmin } = req.body
 
+	if (!userId?.length) {
+		res.status(BAD_REQUEST)
+		throw new Error('User ID is required.')
+	}
+	if (userId.length < 6) {
+		res.status(BAD_REQUEST)
+		throw new Error('User ID must be at least 6 characters long.')
+	}
+	if (!/^[A-Za-z0-9]+$/.test(userId)) {
+		res.status(BAD_REQUEST)
+		throw new Error(`User ID ${userId} must contain only letters and numbers.`)
+	}
 	if (!name?.length) {
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid name.')
@@ -23,14 +35,22 @@ export const registerStudentUsers = asyncHandler(async (req: IRequest, res: Resp
 		throw new Error('Invalid last name.')
 	}
 
-	const existsUser = await userRepository.findUserByCredentials(name, lastName, dateOfBirth)
+	// Check if userId already exists
+	const existsUserById = await userRepository.findUserByUserId(userId)
+	if (existsUserById) {
+		res.status(BAD_REQUEST)
+		throw new Error('User ID already exists.')
+	}
 
+	// Check if user with same credentials already exists (optional, can be removed if not needed)
+	const existsUser = await userRepository.findUserByCredentials(name, lastName, dateOfBirth)
 	if (existsUser) {
 		res.status(BAD_REQUEST)
 		throw new Error('User already exists.')
 	}
 
 	const newStudent = await userRepository.createUser({
+		userId,
 		name,
 		lastName,
 		dateOfBirth,

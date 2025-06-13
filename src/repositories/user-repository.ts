@@ -47,6 +47,13 @@ export async function findUserByCredentials(
 	})
 }
 
+export async function findUserByUserId(userId: string) {
+	return User.findOne({
+		userId: userId.toUpperCase(),
+		status: 'active',
+	})
+}
+
 export async function saveUser(user: HydratedDocument<IUser>) {
 	return user.save()
 }

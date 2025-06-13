@@ -4,6 +4,7 @@ import { Document, Model, Schema, model } from 'mongoose'
 import { TStatus, TUserLevel } from '../utils/common-types'
 
 export interface IUser extends Document {
+	userId: string
 	name: string
 	lastName: string
 	dateOfBirth?: {
@@ -35,6 +36,15 @@ interface IUserModel extends Model<IUser> {}
 
 const userSchema = new Schema<IUser>(
 	{
+		userId: {
+			type: String,
+			required: true,
+			unique: true,
+			trim: true,
+			uppercase: true,
+			minlength: [6, 'User ID must be at least 6 characters long'],
+			match: [/^[A-Z0-9]+$/, 'User ID must contain only letters and numbers'],
+		},
 		name: {
 			type: String,
 			required: true,
