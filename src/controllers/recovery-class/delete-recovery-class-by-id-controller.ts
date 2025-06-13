@@ -5,6 +5,7 @@ import { Response } from 'express'
 import { differenceInHours } from 'date-fns'
 import { IRequest } from '../../middleware/auth-middleware'
 import * as recoveryClassRepository from '../../repositories/recovery-class-repository'
+import * as studentAttendanceRepository from '../../repositories/student-attendance-repository'
 import { BAD_REQUEST, INTERNAL_SERVER_ERROR, NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 import { mongoIdValidator } from '../../utils/validators/input-validator'
 
@@ -23,12 +24,10 @@ export const deleteRecoveryClassById = asyncHandler(async (req: IRequest, res: R
 	const recoveryClass = await recoveryClassRepository.findRecoveryClassById(id)
 
 	if (!recoveryClass) {
-		res.status(NOT_FOUND)
-		throw new Error('Recovery class not found.')
+		res.status(BAD_REQUEST)
+		throw new Error('Recovery class not found')
 	}
 
-	//TIME VALIDATION
-	const now = new Date()
 	const recoveryDate = new Date(
 		recoveryClass.date.year,
 		recoveryClass.date.month - 1,
@@ -36,20 +35,36 @@ export const deleteRecoveryClassById = asyncHandler(async (req: IRequest, res: R
 		recoveryClass.date.hour,
 		recoveryClass.date.minute,
 	)
-	const hours = differenceInHours(recoveryDate, now)
 
-	if (hours < hoursLimitToDelete) {
+	const now = new Date()
+	const diffInMs = recoveryDate.getTime() - now.getTime()
+	const hoursUntilClass = diffInMs / (1000 * 60 * 60)
+
+	if (hoursUntilClass < 6) {
 		res.status(BAD_REQUEST)
-		throw new Error(`You have exceeded the time limit (${hoursLimitToDelete}h) to delete a recovery class reservation.`)
+		throw new Error('You can only cancel a recovery class 6 hours before the class starts.')
 	}
 
 	recoveryClass.status = 'deleted'
 
-	const updatedRecoveryClass = await recoveryClassRepository.saveRecoveryClass(recoveryClass)
+	const recoveryClassDeleted = await recoveryClassRepository.saveRecoveryClass(recoveryClass)
 
-	if (!updatedRecoveryClass) {
+	if (!recoveryClassDeleted) {
 		res.status(INTERNAL_SERVER_ERROR)
 		throw new Error('Error deleting recovery class.')
+	}
+
+	// Try to sync with real attendance if it exists
+	try {
+		await studentAttendanceRepository.syncRecoveryWithRealAttendance(
+			'remove',
+			recoveryClass,
+			recoveryClass.student,
+			recoveryClass.karateClass,
+			recoveryClass.date
+		)
+	} catch (error) {
+		// Don't fail the deletion if sync fails
 	}
 
 	res.status(OK).json({ recoveryClassId: id })

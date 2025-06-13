@@ -16,28 +16,29 @@ export const updateStudentAttendanceById = asyncHandler(async (req: IRequest, re
 
 	if (!mongoIdValidator(id)) {
 		res.status(BAD_REQUEST)
-		throw new Error('Invalid student attendance id.')
+		throw new Error('Invalid attendance id.')
 	}
+
 	if (!attendance?.length || !attendance.every((item: any) => mongoIdValidator(item.student))) {
 		res.status(BAD_REQUEST)
-		throw new Error('Some student ids are invalid.')
+		throw new Error('Invalid attendance data.')
 	}
 
 	const studentAttendance = await studentAttendanceRepository.findStudentAttendanceById(id)
 
 	if (!studentAttendance) {
 		res.status(NOT_FOUND)
-		throw new Error('Student attendance not found.')
+		throw new Error('Attendance not found.')
 	}
 
 	studentAttendance.attendance = attendance
 
-	const studentAttendanceUpdated = await studentAttendanceRepository.saveStudentAttendance(studentAttendance)
+	const savedAttendance = await studentAttendanceRepository.saveStudentAttendance(studentAttendance)
 
-	if (!studentAttendanceUpdated) {
+	if (!savedAttendance) {
 		res.status(INTERNAL_SERVER_ERROR)
-		throw new Error('Error updating student attendance.')
+		throw new Error('Error updating attendance.')
 	}
 
-	res.status(OK).json(studentAttendanceUpdated)
+	res.status(OK).json(savedAttendance)
 })

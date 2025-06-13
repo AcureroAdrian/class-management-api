@@ -5,9 +5,10 @@ import { Response } from 'express'
 import { IRequest } from '../../middleware/auth-middleware'
 import * as karateClassRepository from '../../repositories/karate-class-repository'
 import * as recoveryClassRepository from '../../repositories/recovery-class-repository'
+import * as studentAttendanceRepository from '../../repositories/student-attendance-repository'
 import { BAD_REQUEST, INTERNAL_SERVER_ERROR, OK } from '../../utils/http-server-status-codes'
 import { mongoIdValidator } from '../../utils/validators/input-validator'
-import { ObjectId } from 'mongoose'
+import { Types } from 'mongoose'
 
 // @desc    Booking recovery karate class by id
 // @route   PUT /api/karate-classes/recovery-class/:id
@@ -83,6 +84,19 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 	if (!karateClassUpdated) {
 		res.status(INTERNAL_SERVER_ERROR)
 		throw new Error('Error updating class with recovery class info.')
+	}
+
+	// Try to sync with real attendance if it exists
+	try {
+		await studentAttendanceRepository.syncRecoveryWithRealAttendance(
+			'add',
+			recoveryClass,
+			new Types.ObjectId(studentId),
+			new Types.ObjectId(id),
+			{ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate(), hour: date.getHours(), minute: date.getMinutes() }
+		)
+	} catch (error) {
+		// Don't fail the booking if sync fails
 	}
 
 	res.status(OK).json(recoveryClass)

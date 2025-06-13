@@ -125,7 +125,26 @@ export async function findKarateClassesByWeekDay(
 				description: true,
 				startTime: true,
 				students: {
-					$concatArrays: ['$students', '$recoveryClasses.student'],
+					$concatArrays: [
+						{
+							$map: {
+								input: '$students',
+								as: 'student',
+								in: {
+									$mergeObjects: ['$$student', { isRecovery: false }]
+								}
+							}
+						},
+						{
+							$map: {
+								input: '$recoveryClasses.student',
+								as: 'student',
+								in: {
+									$mergeObjects: ['$$student', { isRecovery: true }]
+								}
+							}
+						}
+					]
 				},
 			},
 		},

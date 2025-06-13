@@ -2,13 +2,14 @@
 
 import asyncHandler from 'express-async-handler'
 import { Response } from 'express'
+import { Types } from 'mongoose'
 import { IRequest } from '../../middleware/auth-middleware'
 import { IKarateClass } from '../../models/KarateClass'
 import * as karateClassRepository from '../../repositories/karate-class-repository'
 import * as studentAttendanceRepository from '../../repositories/student-attendance-repository'
 import * as holidayRepository from '../../repositories/holiday-repository'
 import getNameOfWeekDayByDay from '../../utils/get-name-of-week-day-by-day'
-import { NOT_FOUND, OK } from '../../utils/http-server-status-codes'
+import { NOT_FOUND, OK, BAD_REQUEST } from '../../utils/http-server-status-codes'
 import { subDays } from 'date-fns'
 
 // @desc    Get all student attendances by a specific day
@@ -35,6 +36,7 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 		throw new Error('No attendance found.')
 	}
 
+	// Generate virtual attendances for missing classes
 	let additionalAttendance: any[] = []
 	if (selectedDay > today) {
 		const weekDay = getNameOfWeekDayByDay(selectedDay)
@@ -54,9 +56,16 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 					String(attendance?.karateClass?._id) === String(karateClass?._id),
 			)
 
-			if (existsAttendance) return
+			if (existsAttendance) {
+				return
+			}
 
-			additionalAttendance.push({
+			// Generate deterministic virtual ID
+			const virtualId = `virtual-${karateClass._id}-${validYear}-${validMonth}-${validDay}-${hour}-${minute}`
+			
+			const virtualAttendance = {
+				_id: virtualId,
+				isVirtual: true, // Flag to identify virtual attendances
 				karateClass: karateClass,
 				date: {
 					year: validYear,
@@ -65,14 +74,22 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 					hour,
 					minute,
 				},
-				attendance: [],
+				attendance: [] as any,
 				status: 'active',
 				students: karateClass?.students,
-			})
+			}
+
+			additionalAttendance.push(virtualAttendance)
 		})
 	}
 
-	const totalAttendance = [...savedStudentAttendance, ...additionalAttendance]
+	// Add isVirtual flag to real attendances for consistency
+	const realAttendancesWithFlag = savedStudentAttendance.map(attendance => ({
+		...attendance,
+		isVirtual: false
+	}))
+
+	const totalAttendance = [...realAttendancesWithFlag, ...additionalAttendance]
 
 	if (!totalAttendance?.length) {
 		res.status(NOT_FOUND)

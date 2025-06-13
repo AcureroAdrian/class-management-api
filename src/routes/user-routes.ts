@@ -7,12 +7,14 @@ import {
 	getStudentUserById,
 	getStudentUsers,
 	registerStudentUsers,
+	registerTrialStudent,
 	updateStudentuserById,
 } from '../controllers/user'
 
 const router = Router()
 
 router.route('/').get(protect, forUserAdmin, getStudentUsers).post(protect, forUserAdmin, registerStudentUsers)
+router.route('/trial-student').post(protect, forUserAdmin, registerTrialStudent)
 router
 	.route('/:id')
 	.get(protect, forUserAdmin, getStudentUserById)

@@ -20,6 +20,7 @@ export interface IUser extends Document {
 	isSuper: boolean
 	isAdmin: boolean
 	isTeacher: boolean
+	isTrial?: boolean
 	scheduledDeletionDate?: Date
 	notifications?: {
 		title: string
@@ -93,6 +94,10 @@ const userSchema = new Schema<IUser>(
 			default: false,
 		},
 		isTeacher: {
+			type: Boolean,
+			default: false,
+		},
+		isTrial: {
 			type: Boolean,
 			default: false,
 		},
