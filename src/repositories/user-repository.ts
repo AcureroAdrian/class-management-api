@@ -28,7 +28,7 @@ export async function findStudentUsers(mode: 'teachers' | 'students') {
 				? { $or: [{ isTeacher: true }, { isAdmin: true }] }
 				: { $and: [{ isTeacher: false }, { isAdmin: false }] }),
 		},
-		'name lastName',
+		'name lastName scheduledDeletionDate',
 	)
 }
 

@@ -19,6 +19,7 @@ export interface IUser extends Document {
 	isSuper: boolean
 	isAdmin: boolean
 	isTeacher: boolean
+	scheduledDeletionDate?: Date
 	notifications?: {
 		title: string
 		body: string
@@ -59,7 +60,7 @@ const userSchema = new Schema<IUser>(
 		},
 		level: {
 			type: String,
-			enum: ['novice', 'beginner', 'intermediate', 'elite'],
+			enum: ['novice', 'beginner', 'intermediate', 'advanced', 'elite'],
 		},
 		email: {
 			type: String,
@@ -84,6 +85,9 @@ const userSchema = new Schema<IUser>(
 		isTeacher: {
 			type: Boolean,
 			default: false,
+		},
+		scheduledDeletionDate: {
+			type: Date,
 		},
 		avatar: {
 			type: String,

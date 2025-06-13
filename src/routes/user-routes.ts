@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { protect } from '../middleware/auth-middleware'
 import { forUserAdmin } from '../middleware/role-middleware'
 import {
+	cancelScheduledDeletion,
 	deleteStudentUserById,
 	getStudentUserById,
 	getStudentUsers,
@@ -16,6 +17,7 @@ router
 	.route('/:id')
 	.get(protect, forUserAdmin, getStudentUserById)
 	.patch(protect, forUserAdmin, updateStudentuserById)
-	.delete(protect, forUserAdmin, deleteStudentUserById)
+	.post(protect, forUserAdmin, deleteStudentUserById)
+router.route('/:id/cancel-deletion').patch(protect, forUserAdmin, cancelScheduledDeletion)
 
 export default router

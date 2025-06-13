@@ -20,5 +20,6 @@ export const shortLevels: TShortLevels = {
 	novice: 'Nov',
 	beginner: 'Beg',
 	intermediate: 'Int',
+	advanced: 'Adv',
 	elite: 'Elit',
 }

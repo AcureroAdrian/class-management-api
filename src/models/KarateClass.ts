@@ -42,7 +42,7 @@ const karateClassSchema = new Schema<IKarateClass>(
 			{
 				type: String,
 				required: true,
-				enum: ['novice', 'beginner', 'intermediate', 'elite'],
+				enum: ['novice', 'beginner', 'intermediate', 'advanced', 'elite'],
 			},
 		],
 		weekDays: [
