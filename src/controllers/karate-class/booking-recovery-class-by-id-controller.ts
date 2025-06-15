@@ -93,9 +93,11 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 			recoveryClass,
 			new Types.ObjectId(studentId),
 			new Types.ObjectId(id),
-			{ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate(), hour: date.getHours(), minute: date.getMinutes() }
-		)
+			date
+				)
 	} catch (error) {
+		console.log(error)
+
 		// Don't fail the booking if sync fails
 	}
 

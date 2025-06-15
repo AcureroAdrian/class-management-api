@@ -43,6 +43,7 @@ export async function findKarateClasses() {
 				description: true,
 				location: true,
 				startTime: true,
+				weekDays: true,
 			},
 		},
 	])
