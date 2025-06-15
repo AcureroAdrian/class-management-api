@@ -306,6 +306,8 @@ export async function findStudentAttendanceByDatesAndStudentId(
 				date: true,
 				student: true,
 				attendanceStatus: '$attendance.attendanceStatus',
+				observations: '$attendance.observations',
+				isDayOnly: '$attendance.isDayOnly',
 			},
 		},
 	])
@@ -329,12 +331,70 @@ export async function findStudentAttendanceByDay(year: number, month: number, da
 		{
 			$unwind: '$karateClass',
 		},
+		// Lookup recovery classes for this class (not day-specific)
+		{
+			$lookup: {
+				from: 'recoveryclasses',
+				let: { classId: '$karateClass._id' },
+				pipeline: [
+					{
+						$match: {
+							status: 'active',
+							$expr: { $eq: ['$karateClass', '$$classId'] }
+						}
+					}
+				],
+				as: 'recoveryClasses'
+			}
+		},
 		{
 			$lookup: {
 				from: 'users',
 				localField: 'attendance.student',
 				foreignField: '_id',
 				as: 'students',
+			},
+		},
+		{
+			$addFields: {
+				students: {
+					$map: {
+						input: '$students',
+						as: 'student',
+						in: {
+							$mergeObjects: [
+								'$$student',
+								{
+									isRecovery: {
+										$in: ['$$student._id', '$recoveryClasses.student']
+									}
+								}
+							]
+						}
+					}
+				},
+				attendance: {
+					$map: {
+						input: '$attendance',
+						as: 'att',
+						in: {
+							student: '$$att.student',
+							attendanceStatus: '$$att.attendanceStatus',
+							observations: '$$att.observations',
+							isDayOnly: '$$att.isDayOnly',
+						},
+					},
+				},
+			},
+		},
+		{
+			$project: {
+				_id: 1,
+				karateClass: 1,
+				date: 1,
+				attendance: 1,
+				status: 1,
+				students: 1,
 			},
 		},
 	])
@@ -439,4 +499,94 @@ export async function findAbsentsByStudentId(studentId: string) {
 
 export async function saveStudentAttendance(studentAttendace: HydratedDocument<IStudentAttendance>) {
 	return studentAttendace.save()
+}
+
+// Helper function to find real attendance by date and class
+export async function findRealAttendanceByDateAndClass(
+	karateClassId: any,
+	date: { year: number; month: number; day: number; hour: number; minute: number }
+) {
+	return StudentAttendance.findOne({
+		karateClass: karateClassId,
+		'date.year': date.year,
+		'date.month': date.month,
+		'date.day': date.day,
+		'date.hour': date.hour,
+		'date.minute': date.minute,
+		status: 'active'
+	})
+}
+
+// Helper function to sync recovery student with real attendance
+export async function syncRecoveryWithRealAttendance(
+	action: 'add' | 'remove',
+	recoveryClass: any,
+	studentId: any,
+	karateClassId: any,
+	date: { year: number; month: number; day: number; hour: number; minute: number }
+) {
+	try {
+		// Find real attendance for this specific date and class
+		const attendance = await findRealAttendanceByDateAndClass(karateClassId, date)
+		
+		if (!attendance) {
+			return
+		}
+
+		if (action === 'add') {
+			// Add recovery student to existing real attendance
+			const existingStudent = attendance.attendance.find(
+				(item: any) => item.student.toString() === studentId.toString()
+			)
+
+			if (!existingStudent) {
+				attendance.attendance.push({
+					student: studentId,
+					attendanceStatus: 'absent',
+					isRecovery: true,
+					recoveryClassId: recoveryClass._id,
+					isDayOnly: false
+				})
+			}
+		} else if (action === 'remove') {
+			const beforeLength = attendance.attendance.length
+			
+			// Strategy 1: Try exact match with recoveryClassId
+			let itemsToKeep = attendance.attendance.filter(
+				(item: any) => {
+					const exactMatch = item.student.toString() === recoveryClass.student.toString() &&
+						item.isRecovery === true &&
+						item.recoveryClassId?.toString() === recoveryClass._id.toString()
+					
+					return !exactMatch
+				}
+			)
+
+			// Strategy 2: If no exact match found and student has recovery with undefined recoveryClassId, remove it as fallback
+			if (itemsToKeep.length === beforeLength) {
+				const fallbackMatch = attendance.attendance.find(
+					(item: any) => item.student.toString() === recoveryClass.student.toString() &&
+						item.isRecovery === true &&
+						(!item.recoveryClassId || item.recoveryClassId === undefined)
+				)
+
+				if (fallbackMatch) {
+					itemsToKeep = attendance.attendance.filter(
+						(item: any) => !(
+							item.student.toString() === recoveryClass.student.toString() &&
+							item.isRecovery === true &&
+							(!item.recoveryClassId || item.recoveryClassId === undefined)
+						)
+					)
+				}
+			}
+
+			attendance.attendance = itemsToKeep
+		}
+
+		// Save the updated attendance
+		await attendance.save()
+	} catch (error) {
+		// Don't throw error to avoid breaking the main flow
+	}
 }

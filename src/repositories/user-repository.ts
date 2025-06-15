@@ -28,7 +28,7 @@ export async function findStudentUsers(mode: 'teachers' | 'students') {
 				? { $or: [{ isTeacher: true }, { isAdmin: true }] }
 				: { $and: [{ isTeacher: false }, { isAdmin: false }] }),
 		},
-		'name lastName scheduledDeletionDate',
+		'name lastName scheduledDeletionDate isTrial',
 	)
 }
 
@@ -43,6 +43,13 @@ export async function findUserByCredentials(
 		'dateOfBirth.year': dateOfBirth.year,
 		'dateOfBirth.month': dateOfBirth.month,
 		'dateOfBirth.day': dateOfBirth.day,
+		status: 'active',
+	})
+}
+
+export async function findUserByUserId(userId: string) {
+	return User.findOne({
+		userId: userId.toUpperCase(),
 		status: 'active',
 	})
 }

@@ -11,28 +11,22 @@ import { logger } from '../../logger'
 // @route   POST /api/auth/login
 // @access  Public
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
-	const { name = '', lastName = '', dateOfBirth } = req.body
+	const { userId = '' } = req.body
 
-	if (!name?.length) {
+	if (!userId?.length) {
 		res.status(BAD_REQUEST)
-		throw new Error('Invalid name.')
+		throw new Error('User ID is required.')
 	}
-	if (!lastName?.length) {
+	if (userId.length < 6) {
 		res.status(BAD_REQUEST)
-		throw new Error('Invalid last name.')
+		throw new Error('User ID must be at least 6 characters long.')
 	}
-	if (!dateOfBirth) {
+	if (!/^[A-Za-z0-9]+$/.test(userId)) {
 		res.status(BAD_REQUEST)
-		throw new Error('Invalid date of birth.')
-	}
-
-	const validDateOfBirth = {
-		year: new Date(dateOfBirth).getFullYear(),
-		month: new Date(dateOfBirth).getMonth() + 1,
-		day: new Date(dateOfBirth).getDate(),
+		throw new Error(`User ID ${userId} must contain only letters and numbers.`)
 	}
 
-	const user = await userRepository.findUserByCredentials(name, lastName, validDateOfBirth)
+	const user = await userRepository.findUserByUserId(userId)
 
 	if (!user) {
 		res.status(BAD_REQUEST)
@@ -46,6 +40,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
 	const userInfo = {
 		_id: user._id,
+		userId: user.userId,
 		avatar: user?.avatar,
 		name: user.name,
 		lastName: user.lastName,
@@ -60,12 +55,12 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
 	logger.log({
 		level: 'info',
-		message: `${user.name} ${user.lastName} logged in.`,
+		message: `${user.name} ${user.lastName} (${user.userId}) logged in.`,
 	})
 
 	const token = generateToken(userInfo)
 
-	if (token?.error?.length) {
+	if (typeof token === 'object' && 'error' in token && token.error?.length) {
 		res.status(BAD_REQUEST)
 		throw new Error(token.error)
 	}

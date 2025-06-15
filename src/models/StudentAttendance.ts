@@ -7,6 +7,9 @@ export interface IAttendance {
 	student: ObjectId
 	attendanceStatus: TAttendanceStatus
 	observations?: string
+	isDayOnly?: boolean
+	isRecovery?: boolean
+	recoveryClassId?: ObjectId
 }
 
 export interface IStudentAttendance extends Document {
@@ -63,6 +66,18 @@ const studentAttendanceSchema = new Schema<IStudentAttendance>(
 				},
 				observations: {
 					type: String,
+				},
+				isDayOnly: {
+					type: Boolean,
+					default: false,
+				},
+				isRecovery: {
+					type: Boolean,
+					default: false,
+				},
+				recoveryClassId: {
+					type: Schema.Types.ObjectId,
+					ref: 'RecoveryClass',
 				},
 			},
 		],

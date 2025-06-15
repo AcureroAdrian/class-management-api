@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { protect } from '../middleware/auth-middleware'
 import { forUserAdmin, forUserStudent } from '../middleware/role-middleware'
 import {
+	addStudentToAttendance,
 	getClassReportByClassIdForAdmin,
 	getDailyReportForAdmin,
 	getStudentAttendancesByDay,
@@ -16,6 +17,7 @@ router
 	.route('/')
 	.get(protect, forUserAdmin, getStudentAttendancesByDay)
 	.post(protect, forUserAdmin, registerStudentAttendance)
+router.route('/add-student-to-attendance').post(protect, forUserAdmin, addStudentToAttendance)
 router.route('/daily-report-admin').get(protect, forUserAdmin, getDailyReportForAdmin)
 router.route('/class-report-admin/:id').get(protect, forUserAdmin, getClassReportByClassIdForAdmin)
 router.route('/student-report-admin/:id').get(protect, forUserStudent, getStudentReportForAdmin)

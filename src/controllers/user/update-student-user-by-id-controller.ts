@@ -15,12 +15,31 @@ import { logger } from '../../logger'
 // @access  Admin
 export const updateStudentuserById = asyncHandler(async (req: IRequest, res: Response) => {
 	const data = req.body
-	const { name, lastName, dateOfBirth, level, email, phone, avatar } = data
+	const { userId, name, lastName, dateOfBirth, level, email, phone, avatar } = data
 	const { id: studentId } = req.params
 
 	if (!mongoIdValidator(studentId)) {
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid student id.')
+	}
+
+	if (userId) {
+		if (userId.length < 6) {
+			res.status(BAD_REQUEST)
+			throw new Error('User ID must be at least 6 characters long.')
+		}
+		if (!/^[A-Za-z0-9]+$/.test(userId)) {
+			res.status(BAD_REQUEST)
+			throw new Error(`User ID ${userId} must contain only letters and numbers.`)
+
+		}
+		
+		// Check if userId already exists (but not for the current user)
+		const existsUserById = await userRepository.findUserByUserId(userId)
+		if (existsUserById && String(existsUserById._id) !== studentId) {
+			res.status(BAD_REQUEST)
+			throw new Error('User ID already exists.')
+		}
 	}
 
 	if (name && !name?.length) {
@@ -69,7 +88,7 @@ export const updateStudentuserById = asyncHandler(async (req: IRequest, res: Res
 	Object.keys(data).forEach((key) => {
 		// if (!data[key]) return
 
-		student[key] = data[key] //FIXED
+		;(student as any)[key] = data[key] //FIXED
 	})
 
 	const updatedStudent = await userRepository.saveUser(student)
