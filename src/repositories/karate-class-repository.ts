@@ -53,6 +53,109 @@ export async function findKarateClassById(classId: string) {
 	return KarateClass.findById(classId)
 }
 
+export async function findKarateClassByIdWithRecoveryClasses(
+	classId: string,
+	date: { year: number; month: number; day: number },
+) {
+	return KarateClass.aggregate([
+		{
+			$match: {
+				_id: new ObjectIdGen(classId),
+				status: 'active',
+			},
+		},
+		{
+			$lookup: {
+				from: 'users',
+				localField: 'students',
+				foreignField: '_id',
+				pipeline: [
+					{
+						$match: {
+							status: 'active',
+							isSuper: false,
+							isAdmin: false,
+							isTeacher: false,
+						},
+					},
+				],
+				as: 'students',
+			},
+		},
+		{
+			$lookup: {
+				from: 'recoveryclasses',
+				localField: 'recoveryClasses',
+				foreignField: '_id',
+				pipeline: [
+					{
+						$match: {
+							status: 'active',
+							$and: [{ 'date.year': date.year }, { 'date.month': date.month }, { 'date.day': date.day }],
+						},
+					},
+					{
+						$lookup: {
+							from: 'users',
+							localField: 'student',
+							foreignField: '_id',
+							pipeline: [
+								{
+									$match: {
+										status: 'active',
+										isSuper: false,
+										isAdmin: false,
+										isTeacher: false,
+									},
+								},
+							],
+							as: 'student',
+						},
+					},
+					{
+						$unwind: '$student',
+					},
+				],
+				as: 'recoveryClasses',
+			},
+		},
+		{
+			$project: {
+				name: true,
+				description: true,
+				startTime: true,
+				weekDays: true,
+				location: true,
+				minAge: true,
+				maxAge: true,
+				levels: true,
+				students: {
+					$concatArrays: [
+						{
+							$map: {
+								input: '$students',
+								as: 'student',
+								in: {
+									$mergeObjects: ['$$student', { isRecovery: false }]
+								}
+							}
+						},
+						{
+							$map: {
+								input: '$recoveryClasses.student',
+								as: 'student',
+								in: {
+									$mergeObjects: ['$$student', { isRecovery: true }]
+								}
+							}
+						}
+					]
+				},
+			},
+		},
+	])
+}
+
 export async function findKarateClassesByWeekDay(
 	weekDay: TDaysOfWeek,
 	date: { year: number; month: number; day: number },

@@ -45,24 +45,39 @@ export const addStudentToAttendance = asyncHandler(async (req: IRequest, res: Re
 			throw new Error('Invalid class id.')
 		}
 
-		// Verify class exists
+		// Verify class exists and get it for modification
 		const karateClass = await karateClassRepository.findKarateClassById(classId)
 		if (!karateClass) {
 			res.status(BAD_REQUEST)
 			throw new Error('Class not found.')
 		}
 
-		// Create new real attendance from virtual
+		// Get class with recovery students for creating attendance
+		const [karateClassWithRecovery] = await karateClassRepository.findKarateClassByIdWithRecoveryClasses(classId, date)
+		if (!karateClassWithRecovery) {
+			res.status(BAD_REQUEST)
+			throw new Error('Class not found.')
+		}
+
 		const newAttendanceData = {
 			karateClass: classId,
 			date: date,
 			attendance: [{
 				student: studentId as any,
-				attendanceStatus: 'present' as any,
+				attendanceStatus: 'absent' as any,
 				isDayOnly: isDayOnly || student.isTrial,
 			}],
 			status: 'active' as any,
 		}
+
+		// Create new real attendance from virtual
+		karateClassWithRecovery.students.map((student: any) => {
+			newAttendanceData.attendance.push({
+				student: student as any,
+				attendanceStatus: 'absent' as any,
+				isDayOnly: false,
+			})
+		})		
 
 		attendance = await studentAttendanceRepository.createStudentAttendance(newAttendanceData)
 		if (!attendance) {
