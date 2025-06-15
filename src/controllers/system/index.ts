@@ -1,0 +1,1 @@
+export { resetAttendanceSystem } from './reset-attendance-system-controller' 

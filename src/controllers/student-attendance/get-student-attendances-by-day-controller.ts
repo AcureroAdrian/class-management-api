@@ -37,7 +37,7 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 	}
 
 	// Generate virtual attendances for missing classes
-	let additionalAttendance: any[] = []
+	let virtualAttendances: any[] = []
 	if (selectedDay > today) {
 		const weekDay = getNameOfWeekDayByDay(selectedDay)
 
@@ -48,7 +48,7 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 		})
 
 		validClasses.forEach((karateClass) => {
-			const { hour, minute } = karateClass?.startTime
+			const { hour, minute } = karateClass?.startTime || {};
 			const existsAttendance = savedStudentAttendance?.find(
 				(attendance) =>
 					attendance?.date?.hour === hour &&
@@ -76,10 +76,9 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 				},
 				attendance: [] as any,
 				status: 'active',
-				students: karateClass?.students,
 			}
 
-			additionalAttendance.push(virtualAttendance)
+			virtualAttendances.push(virtualAttendance)
 		})
 	}
 
@@ -89,7 +88,7 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 		isVirtual: false
 	}))
 
-	const totalAttendance = [...realAttendancesWithFlag, ...additionalAttendance]
+	const totalAttendance = [...realAttendancesWithFlag, ...virtualAttendances]
 
 	if (!totalAttendance?.length) {
 		res.status(NOT_FOUND)

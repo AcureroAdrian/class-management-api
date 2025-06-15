@@ -62,7 +62,7 @@ const studentAttendanceSchema = new Schema<IStudentAttendance>(
 				},
 				attendanceStatus: {
 					type: String,
-					enum: ['present', 'absent', 'late'],
+					enum: ['present', 'absent', 'late', 'good-behavior', 'bad-behavior', 'sick'],
 				},
 				observations: {
 					type: String,

@@ -340,39 +340,32 @@ export async function findStudentAttendanceByDay(year: number, month: number, da
 					{
 						$match: {
 							status: 'active',
-							$expr: { $eq: ['$karateClass', '$$classId'] }
-						}
-					}
+							$expr: { $eq: ['$karateClass', '$$classId'] },
+						},
+					},
 				],
-				as: 'recoveryClasses'
-			}
+				as: 'recoveryClasses',
+			},
 		},
 		{
 			$lookup: {
 				from: 'users',
-				localField: 'attendance.student',
-				foreignField: '_id',
-				as: 'students',
+				let: { studentIds: '$karateClass.students' },
+				pipeline: [
+					{
+						$match: {
+							status: 'active',
+							isSuper: false,
+							isAdmin: false,
+							isTeacher: false,
+						},
+					},
+				],
+				as: 'karateClass.students',
 			},
 		},
 		{
 			$addFields: {
-				students: {
-					$map: {
-						input: '$students',
-						as: 'student',
-						in: {
-							$mergeObjects: [
-								'$$student',
-								{
-									isRecovery: {
-										$in: ['$$student._id', '$recoveryClasses.student']
-									}
-								}
-							]
-						}
-					}
-				},
 				attendance: {
 					$map: {
 						input: '$attendance',
@@ -382,6 +375,10 @@ export async function findStudentAttendanceByDay(year: number, month: number, da
 							attendanceStatus: '$$att.attendanceStatus',
 							observations: '$$att.observations',
 							isDayOnly: '$$att.isDayOnly',
+							isRecovery: {
+								// true si este student aparece en alguna recoveryClass
+								$in: ['$$att.student', '$recoveryClasses.student'],
+							},
 						},
 					},
 				},
@@ -441,7 +438,7 @@ export async function findAbsentsByStudentId(studentId: string) {
 		{
 			$match: {
 				'attendance.student': new ObjectId(studentId),
-				'attendance.attendanceStatus': 'absent',
+				'attendance.attendanceStatus': 'absent', // REVISAR
 			},
 		},
 		{
@@ -504,7 +501,7 @@ export async function saveStudentAttendance(studentAttendace: HydratedDocument<I
 // Helper function to find real attendance by date and class
 export async function findRealAttendanceByDateAndClass(
 	karateClassId: any,
-	date: { year: number; month: number; day: number; hour: number; minute: number }
+	date: { year: number; month: number; day: number; hour: number; minute: number },
 ) {
 	return StudentAttendance.findOne({
 		karateClass: karateClassId,
@@ -513,7 +510,7 @@ export async function findRealAttendanceByDateAndClass(
 		'date.day': date.day,
 		'date.hour': date.hour,
 		'date.minute': date.minute,
-		status: 'active'
+		status: 'active',
 	})
 }
 
@@ -523,12 +520,12 @@ export async function syncRecoveryWithRealAttendance(
 	recoveryClass: any,
 	studentId: any,
 	karateClassId: any,
-	date: { year: number; month: number; day: number; hour: number; minute: number }
+	date: { year: number; month: number; day: number; hour: number; minute: number },
 ) {
 	try {
 		// Find real attendance for this specific date and class
 		const attendance = await findRealAttendanceByDateAndClass(karateClassId, date)
-		
+
 		if (!attendance) {
 			return
 		}
@@ -536,7 +533,7 @@ export async function syncRecoveryWithRealAttendance(
 		if (action === 'add') {
 			// Add recovery student to existing real attendance
 			const existingStudent = attendance.attendance.find(
-				(item: any) => item.student.toString() === studentId.toString()
+				(item: any) => item.student.toString() === studentId.toString(),
 			)
 
 			if (!existingStudent) {
@@ -545,38 +542,39 @@ export async function syncRecoveryWithRealAttendance(
 					attendanceStatus: 'absent',
 					isRecovery: true,
 					recoveryClassId: recoveryClass._id,
-					isDayOnly: false
+					isDayOnly: false,
 				})
 			}
 		} else if (action === 'remove') {
 			const beforeLength = attendance.attendance.length
-			
+
 			// Strategy 1: Try exact match with recoveryClassId
-			let itemsToKeep = attendance.attendance.filter(
-				(item: any) => {
-					const exactMatch = item.student.toString() === recoveryClass.student.toString() &&
-						item.isRecovery === true &&
-						item.recoveryClassId?.toString() === recoveryClass._id.toString()
-					
-					return !exactMatch
-				}
-			)
+			let itemsToKeep = attendance.attendance.filter((item: any) => {
+				const exactMatch =
+					item.student.toString() === recoveryClass.student.toString() &&
+					item.isRecovery === true &&
+					item.recoveryClassId?.toString() === recoveryClass._id.toString()
+
+				return !exactMatch
+			})
 
 			// Strategy 2: If no exact match found and student has recovery with undefined recoveryClassId, remove it as fallback
 			if (itemsToKeep.length === beforeLength) {
 				const fallbackMatch = attendance.attendance.find(
-					(item: any) => item.student.toString() === recoveryClass.student.toString() &&
+					(item: any) =>
+						item.student.toString() === recoveryClass.student.toString() &&
 						item.isRecovery === true &&
-						(!item.recoveryClassId || item.recoveryClassId === undefined)
+						(!item.recoveryClassId || item.recoveryClassId === undefined),
 				)
 
 				if (fallbackMatch) {
 					itemsToKeep = attendance.attendance.filter(
-						(item: any) => !(
-							item.student.toString() === recoveryClass.student.toString() &&
-							item.isRecovery === true &&
-							(!item.recoveryClassId || item.recoveryClassId === undefined)
-						)
+						(item: any) =>
+							!(
+								item.student.toString() === recoveryClass.student.toString() &&
+								item.isRecovery === true &&
+								(!item.recoveryClassId || item.recoveryClassId === undefined)
+							),
 					)
 				}
 			}
@@ -588,5 +586,6 @@ export async function syncRecoveryWithRealAttendance(
 		await attendance.save()
 	} catch (error) {
 		// Don't throw error to avoid breaking the main flow
+		console.log(error)
 	}
 }

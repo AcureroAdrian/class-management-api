@@ -6,6 +6,6 @@ export type TUserLevel = 'novice' | 'beginner' | 'intermediate' | 'advanced' | '
 
 export type TStatus = 'active' | 'inactive' | 'deleted'
 
-export type TAttendanceStatus = 'present' | 'absent' | 'late'
+export type TAttendanceStatus = 'present' | 'absent' | 'late' | 'good-behavior' | 'bad-behavior' | 'sick'
 
 export type TLocation = 'spring' | 'katy'
