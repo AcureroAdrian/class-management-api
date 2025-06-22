@@ -10,6 +10,7 @@ import socketConfig from '../socket/socket-config'
 import { SocketConnection } from '../socket/Socket-connection'
 import errorMiddleware from '../../middleware/error-middleware'
 import notFound from '../../middleware/not-found-middleware'
+import { apiKeyMiddleware } from '../../middleware/api-key-middleware'
 import { startScheduledDeletionCron } from '../../utils/scheduled-deletion-cron'
 
 dotenv.config()
@@ -34,6 +35,7 @@ if (process.env.NODE_ENV === 'development') {
 	app.use(morgan('dev'))
 }
 
+app.use(apiKeyMiddleware)
 app.use('/api', router)
 app.use('/public', express.static(path.join(__dirname, 'public')))
 

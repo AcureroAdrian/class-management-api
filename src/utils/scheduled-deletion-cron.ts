@@ -36,8 +36,8 @@ async function processScheduledDeletions() {
 export function startScheduledDeletionCron() {
 	// Ejecutar cada 6 horas (0 */6 * * *)
 	cron.schedule('0 */6 * * *', processScheduledDeletions, {
-		timezone: "America/Costa_Rica" // Ajusta según tu zona horaria
+		timezone: "America/Chicago"
 	})
 
-	console.log('Scheduled deletion cron job started - runs every 6 horas')
-} 
+	console.log('Scheduled deletion cron job started - runs every 6 hours')
+}
