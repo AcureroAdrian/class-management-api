@@ -13,7 +13,7 @@ import { NOT_FOUND, OK, BAD_REQUEST } from '../../utils/http-server-status-codes
 import { subDays } from 'date-fns'
 
 // @desc    Get all student attendances by a specific day
-// @route   GET /api/student-attendances/
+// @route   GET /api/student-attendances?year&month&day
 // @access  Admin
 export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res: Response) => {
 	const today = subDays(new Date(), 1)
@@ -48,7 +48,7 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 		})
 
 		validClasses.forEach((karateClass) => {
-			const { hour, minute } = karateClass?.startTime || {};
+			const { hour, minute } = karateClass?.startTime || {}
 			const existsAttendance = savedStudentAttendance?.find(
 				(attendance) =>
 					attendance?.date?.hour === hour &&
@@ -62,7 +62,7 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 
 			// Generate deterministic virtual ID
 			const virtualId = `virtual-${karateClass._id}-${validYear}-${validMonth}-${validDay}-${hour}-${minute}`
-			
+
 			const virtualAttendance = {
 				_id: virtualId,
 				isVirtual: true, // Flag to identify virtual attendances
@@ -83,9 +83,9 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 	}
 
 	// Add isVirtual flag to real attendances for consistency
-	const realAttendancesWithFlag = savedStudentAttendance.map(attendance => ({
+	const realAttendancesWithFlag = savedStudentAttendance.map((attendance) => ({
 		...attendance,
-		isVirtual: false
+		isVirtual: false,
 	}))
 
 	const totalAttendance = [...realAttendancesWithFlag, ...virtualAttendances]

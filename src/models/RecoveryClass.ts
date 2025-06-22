@@ -28,14 +28,17 @@ const recoveryClassSchema = new Schema<IRecoveryClass>(
 		karateClass: {
 			type: Schema.Types.ObjectId,
 			ref: 'KarateClass',
+			index: true,
 		},
 		student: {
 			type: Schema.Types.ObjectId,
 			ref: 'User',
+			index: true,
 		},
 		attendance: {
 			type: Schema.Types.ObjectId,
 			ref: 'Attendance',
+			index: true,
 		},
 		date: {
 			year: {

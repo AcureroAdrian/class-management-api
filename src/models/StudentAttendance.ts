@@ -40,12 +40,15 @@ const studentAttendanceSchema = new Schema<IStudentAttendance>(
 		date: {
 			year: {
 				type: Number,
+				index: true,
 			},
 			month: {
 				type: Number,
+				index: true,
 			},
 			day: {
 				type: Number,
+				index: true,
 			},
 			hour: {
 				type: Number,
@@ -59,6 +62,7 @@ const studentAttendanceSchema = new Schema<IStudentAttendance>(
 				student: {
 					type: Schema.Types.ObjectId,
 					ref: 'User',
+					index: true,
 				},
 				attendanceStatus: {
 					type: String,
