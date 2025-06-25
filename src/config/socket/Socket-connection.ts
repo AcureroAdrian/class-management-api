@@ -1,4 +1,5 @@
 'use strict'
+import { Server, Socket } from 'socket.io'
 
 const { USER_CONNECTED_SOCKET_EVENT } = require('./events/user-socket-events')
 import { AUTHORIZED_USERS } from './rooms'
@@ -14,7 +15,9 @@ interface ISocketUSer {
 export const usersSocketOnline: ISocketUSer[] = []
 
 export class SocketConnection {
-	constructor(socket, io) {
+	socket: Socket
+	io: Server
+	constructor(socket: Socket, io: Server) {
 		this.socket = socket
 		this.io = io
 		socket.on(USER_CONNECTED_SOCKET_EVENT, (user: ISocketUSer) => this.userConnected(user))
