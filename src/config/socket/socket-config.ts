@@ -1,6 +1,7 @@
 'use strict'
 
 import { Server } from 'socket.io'
+import { Server as HttpServer } from 'http'
 
 // const allowedOrigins = [process.env.APP_URL, process.env.APP_PROVEEDORES_URL]
 
@@ -23,7 +24,7 @@ interface SocketData {
 	age: number
 }
 
-const socketConfig = (httpServer) => {
+const socketConfig = (httpServer: HttpServer) => {
 	const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(httpServer, {
 		cors: {
 			origin: (origin, callback) => {

@@ -24,12 +24,17 @@ export const protect = asyncHandler(async (req: IRequest, res: Response, next: N
 
 		const decoded = validateToken(sigToken)
 
-		if (decoded?.error?.length) {
+		if (typeof decoded === 'object' && decoded !== null && 'error' in decoded) {
 			res.status(UNAUTHORIZED)
-			throw new Error(decoded?.error)
+			throw new Error((decoded as { error: string }).error)
 		}
 
-		const user = await userRepository.findUserById(decoded?._id)
+		if (typeof decoded === 'string') {
+			res.status(UNAUTHORIZED)
+			throw new Error('Not Authorized, token not valid.')
+		}
+
+		const user = await userRepository.findUserById((decoded as { _id: string })?._id)
 
 		if (!user) {
 			res.status(UNAUTHORIZED)
