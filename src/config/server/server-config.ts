@@ -10,17 +10,22 @@ import socketConfig from '../socket/socket-config'
 import { SocketConnection } from '../socket/Socket-connection'
 import errorMiddleware from '../../middleware/error-middleware'
 import notFound from '../../middleware/not-found-middleware'
+import { apiKeyMiddleware } from '../../middleware/api-key-middleware'
+import { startScheduledDeletionCron } from '../../utils/scheduled-deletion-cron'
 
 dotenv.config()
 
 const app = express()
 const server = http.createServer(app)
-
+ 
 const io = socketConfig(server)
 
 io.on('connection', (socket) => {
 	new SocketConnection(socket, io)
 })
+
+// Inicializar cron job para eliminaciones programadas
+startScheduledDeletionCron()
 
 app.set('io', io)
 app.use(cors())
@@ -30,6 +35,7 @@ if (process.env.NODE_ENV === 'development') {
 	app.use(morgan('dev'))
 }
 
+app.use(apiKeyMiddleware)
 app.use('/api', router)
 app.use('/public', express.static(path.join(__dirname, 'public')))
 

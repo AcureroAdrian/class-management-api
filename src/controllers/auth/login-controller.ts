@@ -1,9 +1,7 @@
 'use strict'
 
 import asyncHandler from 'express-async-handler'
-import { differenceInYears } from 'date-fns'
 import { Request, Response } from 'express'
-import { verifyEmail } from '../../utils/validators/input-validator'
 import * as userRepository from '../../repositories/user-repository'
 import { generateToken } from '../../utils/token-functions'
 import { BAD_REQUEST, UNAUTHORIZED, OK } from '../../utils/http-server-status-codes'
@@ -13,25 +11,26 @@ import { logger } from '../../logger'
 // @route   POST /api/auth/login
 // @access  Public
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
-	const { email = '', password = '' } = req.body
+	const { userId = '' } = req.body
 
-	if (!verifyEmail(email)) {
+	if (!userId?.length) {
 		res.status(BAD_REQUEST)
-		throw new Error('Invalid Email Address.')
+		throw new Error('User ID is required.')
+	}
+	if (userId.length < 6) {
+		res.status(BAD_REQUEST)
+		throw new Error('User ID must be at least 6 characters long.')
+	}
+	if (!/^[A-Za-z0-9]+$/.test(userId)) {
+		res.status(BAD_REQUEST)
+		throw new Error(`User ID ${userId} must contain only letters and numbers.`)
 	}
 
-	const user = await userRepository.findUserByEmail(email)
+	const user = await userRepository.findUserByUserId(userId)
 
 	if (!user) {
 		res.status(BAD_REQUEST)
-		throw new Error('Invalid Email Address.')
-	}
-
-	const isValidPassword = user.validPassword(password)
-
-	if (!isValidPassword) {
-		res.status(BAD_REQUEST)
-		throw new Error('Invalid Password.')
+		throw new Error('User not found.')
 	}
 
 	if (user.status === 'inactive') {
@@ -39,29 +38,29 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
 		throw new Error('Your account is inactive.')
 	}
 
-	const age = differenceInYears(new Date(), new Date(user.dateOfBirth))
-
 	const userInfo = {
 		_id: user._id,
+		userId: user.userId,
 		avatar: user?.avatar,
 		name: user.name,
 		lastName: user.lastName,
 		email: user.email,
-		userType: user.userType,
 		level: user.level,
 		dateOfBirth: user.dateOfBirth,
-		age,
 		createdAt: user.createdAt,
+		isSuper: Boolean(user.isSuper),
+		isAdmin: Boolean(user.isAdmin),
+		isTeacher: Boolean(user.isTeacher),
 	}
 
 	logger.log({
 		level: 'info',
-		message: `${user.name} ${user.lastName} logged in.`,
+		message: `${user.name} ${user.lastName} (${user.userId}) logged in.`,
 	})
 
 	const token = generateToken(userInfo)
 
-	if (token?.error?.length) {
+	if (typeof token === 'object' && 'error' in token && token.error?.length) {
 		res.status(BAD_REQUEST)
 		throw new Error(token.error)
 	}

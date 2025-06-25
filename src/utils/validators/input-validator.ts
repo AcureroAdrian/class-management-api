@@ -1,5 +1,7 @@
 'use strict'
 
+import mongoose from 'mongoose'
+
 export const verifyEmail = (email: string) => {
 	const emailRex =
 		/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
@@ -41,4 +43,8 @@ export const passwordComplexValidator = (password: string) => {
 	}
 
 	return result
+}
+
+export const mongoIdValidator = (id: string) => {
+	return mongoose.Types.ObjectId.isValid(id)
 }

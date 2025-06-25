@@ -49,14 +49,18 @@
 		],
 		"func-names": ["error", "never"],
 		"arrow-parens": ["error", "as-needed"],
-		"semi": "error",
+		"semi": "off",
 		"no-extra-semi": 0,
 		"import/no-unresolved": "off",
 		"import/prefer-default-export": 0,
 		"import/no-extraneous-dependencies": [
 			"error",
 			{
-				"devDependencies": ["**/*.test.ts", "**/*.spec.ts"]
+				"devDependencies": false,
+				"optionalDependencies": false,
+				"peerDependencies": false,
+				"bundleDependencies": false,
+				"packageDir": "./"
 			}
 		],
 		"no-unused-vars": "off",
@@ -84,6 +88,6 @@
 	// 		}
 	// 	}
 	// ],
-	"plugins": ["@typescript-eslint"],
+	"plugins": ["@typescript-eslint", "eslint-plugin-import"],
 	"settings": {}
 }

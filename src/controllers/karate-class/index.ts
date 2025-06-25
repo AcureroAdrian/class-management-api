@@ -1,0 +1,11 @@
+'use strict'
+
+export { bookingRecoveryClassById } from './booking-recovery-class-by-id-controller'
+export { deleteKarateClassById } from './delete-karate-class-by-id-controller'
+export { getKarateClassById } from './get-karate-class-by-id-controller'
+export { getKarateClasses } from './get-karate-classes-controller'
+export { getKarateClassesByStudentId } from './get-karate-classes-by-student-id-controller'
+export { getKarateClassesForStudent } from './get-karate-classes-for-student-controller'
+export { getkarateClassToAdminAttendance } from './get-karate-class-to-admin-attendance-controller'
+export { registerKarateClass } from './register-karate-class-controller'
+export { updateKarateClassById } from './update-karate-class-by-id-controller'

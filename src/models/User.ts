@@ -1,21 +1,32 @@
-import { Document, Model, Schema, model } from 'mongoose'
-import { hashSync, genSaltSync, compareSync } from 'bcrypt'
+'use strict'
 
-type TUserLevel = 'novice' | 'beginner' | 'intermediate' | 'elite'
-type TStatus = 'active' | 'inactive' | 'deleted'
+import { Document, Model, Schema, model } from 'mongoose'
+import { TStatus, TUserLevel } from '../utils/common-types'
 
 export interface IUser extends Document {
-	email: string
-	password: string
+	userId: string
 	name: string
 	lastName: string
-	dateOfBirth: Date
-	level: TUserLevel
-	isAdmin: boolean
+	dateOfBirth?: {
+		year: number
+		month: number
+		day: number
+	}
+	email?: string
+	phone?: string
+	notes?: string
+	level?: TUserLevel
 	avatar?: string
+	isSuper: boolean
+	isAdmin: boolean
+	isTeacher: boolean
+	isTrial?: boolean
+	scheduledDeletionDate?: Date
+	notifications?: {
+		title: string
+		body: string
+	}[]
 	status: TStatus
-	encryptPassword: (password: string) => string
-	validPassword: (password: string) => boolean
 	createdAt: Date
 	updatedAt: Date
 }
@@ -26,6 +37,15 @@ interface IUserModel extends Model<IUser> {}
 
 const userSchema = new Schema<IUser>(
 	{
+		userId: {
+			type: String,
+			required: true,
+			unique: true,
+			trim: true,
+			uppercase: true,
+			minlength: [6, 'User ID must be at least 6 characters long'],
+			match: [/^[A-Z0-9]+$/, 'User ID must contain only letters and numbers'],
+		},
 		name: {
 			type: String,
 			required: true,
@@ -39,28 +59,50 @@ const userSchema = new Schema<IUser>(
 			lowercase: true,
 		},
 		dateOfBirth: {
-			type: Date,
-			required: true,
+			year: {
+				type: Number,
+			},
+			month: {
+				type: Number,
+			},
+			day: {
+				type: Number,
+			},
 		},
 		level: {
 			type: String,
-			required: true,
-			enum: ['novice', 'beginner', 'intermediate', 'elite'],
-			default: 'novice',
+			enum: ['novice', 'beginner', 'intermediate', 'advanced', 'elite'],
 		},
 		email: {
 			type: String,
-			unique: true,
-			required: true,
 			trim: true,
 		},
-		password: {
+		phone: {
 			type: String,
-			required: true,
+			trim: true,
+		},
+		notes: {
+			type: String,
+			trim: true,
+		},
+		isSuper: {
+			type: Boolean,
+			default: false,
 		},
 		isAdmin: {
 			type: Boolean,
 			default: false,
+		},
+		isTeacher: {
+			type: Boolean,
+			default: false,
+		},
+		isTrial: {
+			type: Boolean,
+			default: false,
+		},
+		scheduledDeletionDate: {
+			type: Date,
 		},
 		avatar: {
 			type: String,
@@ -73,13 +115,5 @@ const userSchema = new Schema<IUser>(
 	},
 	{ timestamps: true },
 )
-
-userSchema.methods.encryptPassword = function (password: string): string {
-	return hashSync(password, genSaltSync(10))
-}
-
-userSchema.methods.validPassword = function (password: string): boolean {
-	return compareSync(password, this.password)
-}
 
 export const User: IUserModel = model<IUser, IUserModel>('User', userSchema)
