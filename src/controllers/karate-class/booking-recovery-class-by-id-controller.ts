@@ -6,6 +6,7 @@ import { IRequest } from '../../middleware/auth-middleware'
 import * as karateClassRepository from '../../repositories/karate-class-repository'
 import * as recoveryClassRepository from '../../repositories/recovery-class-repository'
 import * as studentAttendanceRepository from '../../repositories/student-attendance-repository'
+import * as userRepository from '../../repositories/user-repository'
 import { BAD_REQUEST, INTERNAL_SERVER_ERROR, OK } from '../../utils/http-server-status-codes'
 import { mongoIdValidator } from '../../utils/validators/input-validator'
 import { Types } from 'mongoose'
@@ -25,9 +26,19 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid student id.')
 	}
-	if (!mongoIdValidator(attendanceId)) {
+	if (attendanceId && !mongoIdValidator(attendanceId)) {
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid absentence.')
+	}
+
+	if (!attendanceId) {
+		const student = await userRepository.findUserById(studentId)
+		const absents = await studentAttendanceRepository.findAbsentsByStudentId(studentId)
+		const totalRecoveryCredits = (absents?.length || 0) + (student.recoveryCreditsAdjustment || 0)
+		if (!student || totalRecoveryCredits <= 0) {
+			res.status(BAD_REQUEST)
+			throw new Error('Student has no recovery credits.')
+		}
 	}
 
 	const karateClass = await karateClassRepository.findKarateClassById(id)
@@ -64,16 +75,29 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 	}
 
 	const recoveryClasses = karateClass.recoveryClasses || []
-	const recoveryClass = await recoveryClassRepository.createRecoveryClass({
+	const recoveryClassPayload: any = {
 		karateClass: id as any,
 		student: studentId,
-		attendance: attendanceId,
 		date,
-	})
+	}
+
+	if (attendanceId) {
+		recoveryClassPayload.attendance = attendanceId
+	}
+
+	const recoveryClass = await recoveryClassRepository.createRecoveryClass(recoveryClassPayload)
 
 	if (!recoveryClass) {
 		res.status(INTERNAL_SERVER_ERROR)
 		throw new Error('Error creating recovery class.')
+	}
+
+	if (!attendanceId) {
+		const student = await userRepository.findUserById(studentId)
+		if (student) {
+			student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) - 1
+			await userRepository.saveUser(student)
+		}
 	}
 
 	recoveryClasses.push(recoveryClass._id as any)
@@ -87,18 +111,20 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 	}
 
 	// Try to sync with real attendance if it exists
-	try {
-		await studentAttendanceRepository.syncRecoveryWithRealAttendance(
-			'add',
-			recoveryClass,
-			new Types.ObjectId(studentId),
-			new Types.ObjectId(id),
-			date
-				)
-	} catch (error) {
-		console.log(error)
+	if (attendanceId) {
+		try {
+			await studentAttendanceRepository.syncRecoveryWithRealAttendance(
+				'add',
+				recoveryClass,
+				new Types.ObjectId(studentId),
+				new Types.ObjectId(id),
+				date,
+			)
+		} catch (error) {
+			console.log(error)
 
-		// Don't fail the booking if sync fails
+			// Don't fail the booking if sync fails
+		}
 	}
 
 	res.status(OK).json(recoveryClass)

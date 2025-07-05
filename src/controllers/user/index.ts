@@ -1,5 +1,6 @@
 'use strict'
 
+export { adjustRecoveryCredits } from './adjust-recovery-credits-controller'
 export { cancelScheduledDeletion } from './cancel-scheduled-deletion-controller'
 export { deleteStudentUserById } from './delete-student-user-by-id-controller'
 export { getStudentUserById } from './get-student-user-by-id-controller'
