@@ -54,21 +54,23 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 	const [anotherClass] = classesInTimeRange?.filter((classInTimeRange) => String(classInTimeRange._id) !== id)
 	const selfClassInfo = classesInTimeRange?.find((classInTimeRange) => String(classInTimeRange._id) === id)
 
+	const studentLimit = karateClass.location?.toLowerCase() === 'katy' ? 20 : 40
+
 	if (
 		(anotherClass?.students || 0) +
 			(anotherClass?.recoveryClasses || 0) +
 			karateClass?.students?.length +
 			(selfClassInfo?.recoveryClasses || 0) +
 			1 >
-		40
+		studentLimit
 	) {
 		res.status(BAD_REQUEST)
 		throw new Error(
 			anotherClass
-				? `The number of students for the schedule exceeds 40 students. Class at the same time: ${
+				? `The number of students for the schedule exceeds ${studentLimit} students. Class at the same time: ${
 						anotherClass?.className
 				  } (${anotherClass?.students || 0} students and ${anotherClass?.recoveryClasses || 0} recovery classes)`
-				: `The number of students for the schedule exceeds 40 students. Students: ${
+				: `The number of students for the schedule exceeds ${studentLimit} students. Students: ${
 						selfClassInfo?.students || 0
 				  } and recovery classes: ${selfClassInfo?.recoveryClasses || 0}`,
 		)

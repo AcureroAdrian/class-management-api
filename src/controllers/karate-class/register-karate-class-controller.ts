@@ -55,12 +55,14 @@ export const registerKarateClass = asyncHandler(async (req: IRequest, res: Respo
 
 	const [anotherClass] = classesInTimeRange
 
-	if ((anotherClass?.students || 0) + (anotherClass?.recoveryClasses || 0) + students.length > 40) {
+	const studentLimit = location?.toLowerCase() === 'katy' ? 20 : 40
+
+	if ((anotherClass?.students || 0) + (anotherClass?.recoveryClasses || 0) + students.length > studentLimit) {
 		res.status(BAD_REQUEST)
 		throw new Error(
 			anotherClass
-				? `The number of students for the schedule exceeds 40 students. Class at the same time: ${anotherClass?.name}`
-				: 'The number of students for the schedule exceeds 40 students.',
+				? `The number of students for the schedule exceeds ${studentLimit} students. Class at the same time: ${anotherClass?.name}`
+				: `The number of students for the schedule exceeds ${studentLimit} students.`,
 		)
 	}
 
