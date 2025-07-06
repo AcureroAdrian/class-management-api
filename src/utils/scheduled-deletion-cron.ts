@@ -32,12 +32,12 @@ async function processScheduledDeletions() {
 	}
 }
 
-// Configurar cron job para ejecutar cada 6 horas
+// Configurar cron job para ejecutar cada 10 minutos
 export function startScheduledDeletionCron() {
-	// Ejecutar cada 6 horas (0 */6 * * *)
-	cron.schedule('0 */6 * * *', processScheduledDeletions, {
+	// Ejecutar cada 10 minutos (*/10 * * * *)
+	cron.schedule('*/10 * * * *', processScheduledDeletions, {
 		timezone: "America/Chicago"
 	})
 
-	console.log('Scheduled deletion cron job started - runs every 6 hours')
-}
+	console.log('Scheduled deletion cron job started - runs every 10 minutes')
+} 

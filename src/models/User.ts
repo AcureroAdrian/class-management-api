@@ -22,6 +22,7 @@ export interface IUser extends Document {
 	isTeacher: boolean
 	isTrial?: boolean
 	scheduledDeletionDate?: Date
+	recoveryCreditsAdjustment?: number
 	notifications?: {
 		title: string
 		body: string
@@ -103,6 +104,10 @@ const userSchema = new Schema<IUser>(
 		},
 		scheduledDeletionDate: {
 			type: Date,
+		},
+		recoveryCreditsAdjustment: {
+			type: Number,
+			default: 0,
 		},
 		avatar: {
 			type: String,
