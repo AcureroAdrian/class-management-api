@@ -12,8 +12,7 @@
     "start": "node dist/server.js",
     "test": "jest",
     "fix-lint": "./node_modules/eslint/bin/eslint.js  src --ext .ts --fix",
-    "script": "ts-node src/seeder.ts",
-    "cron:process-deletions": "ts-node src/tasks/process-scheduled-deletions.ts"
+    "script": "ts-node src/seeder.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
