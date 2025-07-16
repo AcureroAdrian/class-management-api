@@ -35,7 +35,15 @@ if (process.env.NODE_ENV === 'development') {
 	app.use(morgan('dev'))
 }
 
-app.use(apiKeyMiddleware)
+// Aplicar API key middleware solo a rutas que lo requieren
+app.use('/api', (req, res, next) => {
+	// Excluir el endpoint de health check del middleware de API key
+	if (req.path === '/system/keep-alive') {
+		return next()
+	}
+	apiKeyMiddleware(req, res, next)
+})
+
 app.use('/api', router)
 app.use('/public', express.static(path.join(__dirname, 'public')))
 
