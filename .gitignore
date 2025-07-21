@@ -130,3 +130,6 @@ dist
 data
 
 /src/seeder.ts
+/src/clean-seeder.ts
+/src/excel-seeder.ts
+*.xlsx

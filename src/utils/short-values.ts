@@ -17,8 +17,8 @@ export const shortDaysOfWeek: TShortDaysOfWeek = {
 type TShortLevels = Record<TUserLevel, string>
 
 export const shortLevels: TShortLevels = {
-	novice: 'Nov',
 	beginner: 'Beg',
+	novice: 'Nov',
 	intermediate: 'Int',
 	advanced: 'Adv',
 	elite: 'Elit',

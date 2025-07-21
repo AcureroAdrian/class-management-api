@@ -228,6 +228,7 @@ export async function findKarateClassesByWeekDay(
 				name: true,
 				description: true,
 				startTime: true,
+				location: true,
 				students: {
 					$concatArrays: [
 						{
