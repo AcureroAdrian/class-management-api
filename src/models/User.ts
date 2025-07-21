@@ -72,7 +72,7 @@ const userSchema = new Schema<IUser>(
 		},
 		level: {
 			type: String,
-			enum: ['novice', 'beginner', 'intermediate', 'advanced', 'elite'],
+			enum: ['beginner', 'novice', 'intermediate', 'advanced', 'elite'],
 		},
 		email: {
 			type: String,

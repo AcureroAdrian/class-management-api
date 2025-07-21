@@ -47,6 +47,7 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 			day: validDay,
 		})
 
+
 		validClasses.forEach((karateClass) => {
 			const { hour, minute } = karateClass?.startTime || {}
 			const existsAttendance = savedStudentAttendance?.find(

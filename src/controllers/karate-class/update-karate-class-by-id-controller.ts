@@ -86,7 +86,7 @@ export const updateKarateClassById = asyncHandler(async (req: IRequest, res: Res
 		const [anotherClass] = anotherClasses
 		const selfClassInfo = classesInTimeRange?.find((classInTimeRange) => String(classInTimeRange._id) === karateClassId)
 
-		const studentLimit = karateClass.location?.toLowerCase() === 'katy' ? 20 : 40
+		const studentLimit = karateClass.location?.toLowerCase() === 'katy' ? 30 : 40
 
 		if (
 			(anotherClass?.students || 0) +
