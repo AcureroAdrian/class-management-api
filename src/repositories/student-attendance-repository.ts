@@ -354,31 +354,53 @@ export async function findStudentAttendanceByDay(year: number, month: number, da
 				pipeline: [
 					{
 						$match: {
-							status: 'active',
-							isSuper: false,
-							isAdmin: false,
-							isTeacher: false,
+							$expr: {
+								$and: [
+									{ $in: ['$_id', '$$studentIds'] },
+									{ $eq: ['$status', 'active'] },
+									{ $eq: ['$isSuper', false] },
+									{ $eq: ['$isAdmin', false] },
+									{ $eq: ['$isTeacher', false] },
+								],
+							},
 						},
 					},
 				],
 				as: 'karateClass.students',
 			},
 		},
+		// Unwind attendance array to process each attendance record individually
 		{
-			$addFields: {
+			$unwind: '$attendance',
+		},
+		// Lookup student information for each attendance record
+		{
+			$lookup: {
+				from: 'users',
+				localField: 'attendance.student',
+				foreignField: '_id',
+				as: 'attendanceStudent',
+			},
+		},
+		{
+			$unwind: '$attendanceStudent',
+		},
+		// Group back the attendance records with complete student information
+		{
+			$group: {
+				_id: '$_id',
+				karateClass: { $first: '$karateClass' },
+				date: { $first: '$date' },
+				status: { $first: '$status' },
+				recoveryClasses: { $first: '$recoveryClasses' },
 				attendance: {
-					$map: {
-						input: '$attendance',
-						as: 'att',
-						in: {
-							student: '$$att.student',
-							attendanceStatus: '$$att.attendanceStatus',
-							observations: '$$att.observations',
-							isDayOnly: '$$att.isDayOnly',
-							isRecovery: {
-								// true si este student aparece en alguna recoveryClass
-								$in: ['$$att.student', '$recoveryClasses.student'],
-							},
+					$push: {
+						student: '$attendanceStudent',
+						attendanceStatus: '$attendance.attendanceStatus',
+						observations: '$attendance.observations',
+						isDayOnly: '$attendance.isDayOnly',
+						isRecovery: {
+							$in: ['$attendance.student', '$recoveryClasses.student'],
 						},
 					},
 				},
@@ -444,10 +466,9 @@ export async function findAbsentsByStudentId(studentId: string) {
 		{
 			$lookup: {
 				from: 'recoveryclasses',
-				localField: '_id',
-				foreignField: 'attendance',
 				let: {
 					studentId: { $toString: '$attendance.student' },
+					attendanceId: '$_id',
 				},
 				pipeline: [
 					{
@@ -472,7 +493,11 @@ export async function findAbsentsByStudentId(studentId: string) {
 						$match: {
 							status: 'active',
 							$expr: {
-								$and: [{ $gt: ['$recoveryDate', '$today'] }, { $eq: [{ $toString: '$student' }, '$$studentId'] }],
+								$and: [
+									{ $eq: ['$attendance', '$$attendanceId'] },
+									{ $gt: ['$recoveryDate', '$today'] },
+									{ $eq: [{ $toString: '$student' }, '$$studentId'] },
+								],
 							},
 						},
 					},

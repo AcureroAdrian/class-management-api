@@ -10,10 +10,11 @@ import * as userRepository from '../../repositories/user-repository'
 import { BAD_REQUEST, INTERNAL_SERVER_ERROR, OK } from '../../utils/http-server-status-codes'
 import { mongoIdValidator } from '../../utils/validators/input-validator'
 import { Types } from 'mongoose'
+import { locationCapacityLimits } from '../../utils/short-values'
 
 // @desc    Booking recovery karate class by id
 // @route   PUT /api/karate-classes/recovery-class/:id
-// @access  Admin
+// @access  Student
 export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: Response) => {
 	const { id } = req.params
 	const { studentId, attendanceId, date } = req.body
@@ -51,10 +52,11 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 		karateClass?.weekDays,
 	)
 
+	// Otra clase para verificar si hay espacio en el horario
 	const [anotherClass] = classesInTimeRange?.filter((classInTimeRange) => String(classInTimeRange._id) !== id)
 	const selfClassInfo = classesInTimeRange?.find((classInTimeRange) => String(classInTimeRange._id) === id)
 
-	const studentLimit = karateClass.location?.toLowerCase() === 'katy' ? 20 : 40
+	const studentLimit = locationCapacityLimits[karateClass.location?.toLowerCase?.() || 'spring'] || 40
 
 	if (
 		(anotherClass?.students || 0) +

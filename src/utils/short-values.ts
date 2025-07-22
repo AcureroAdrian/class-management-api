@@ -23,3 +23,9 @@ export const shortLevels: TShortLevels = {
 	advanced: 'Adv',
 	elite: 'Elit',
 }
+
+// Limites de capacidad por locación
+export const locationCapacityLimits: Record<string, number> = {
+    katy: 30,
+    spring: 40,
+}

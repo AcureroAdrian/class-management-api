@@ -121,7 +121,7 @@ export const addStudentToAttendance = asyncHandler(async (req: IRequest, res: Re
 	// Add student to existing attendance
 	attendance.attendance.push({
 		student: studentId as any,
-		attendanceStatus: 'present',
+		attendanceStatus: 'absent',
 		isDayOnly: isDayOnly || student.isTrial,
 	})
 

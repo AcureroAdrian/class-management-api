@@ -38,7 +38,7 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 
 	// Generate virtual attendances for missing classes
 	let virtualAttendances: any[] = []
-	if (selectedDay > today) {
+	if (selectedDay >= today) {
 		const weekDay = getNameOfWeekDayByDay(selectedDay)
 
 		const validClasses: IKarateClass[] = await karateClassRepository.findKarateClassesByWeekDay(weekDay, {
@@ -64,6 +64,14 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 			// Generate deterministic virtual ID
 			const virtualId = `virtual-${karateClass._id}-${validYear}-${validMonth}-${validDay}-${hour}-${minute}`
 
+			const virtualAttendanceStudents = karateClass?.students?.map((student) => ({
+				student: student,
+				attendanceStatus: "absent",
+				observations: "",
+				isDayOnly: false,
+				isRecovery: false
+			}))
+			
 			const virtualAttendance = {
 				_id: virtualId,
 				isVirtual: true, // Flag to identify virtual attendances
@@ -75,7 +83,7 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 					hour,
 					minute,
 				},
-				attendance: [] as any,
+				attendance: virtualAttendanceStudents,
 				status: 'active',
 			}
 

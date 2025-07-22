@@ -9,6 +9,9 @@ import { BAD_REQUEST, INTERNAL_SERVER_ERROR, OK } from '../../utils/http-server-
 import { mongoIdValidator } from '../../utils/validators/input-validator'
 import { logger } from '../../logger'
 import { addDays } from 'date-fns'
+import mongoose from 'mongoose'
+import { StudentAttendance } from '../../models/StudentAttendance'
+import { locationCapacityLimits } from '../../utils/short-values'
 
 // @desc    PATCH update karate class by id
 // @route   PATCH /api/karate-classes/:id
@@ -86,7 +89,7 @@ export const updateKarateClassById = asyncHandler(async (req: IRequest, res: Res
 		const [anotherClass] = anotherClasses
 		const selfClassInfo = classesInTimeRange?.find((classInTimeRange) => String(classInTimeRange._id) === karateClassId)
 
-		const studentLimit = karateClass.location?.toLowerCase() === 'katy' ? 30 : 40
+		const studentLimit = locationCapacityLimits[karateClass.location?.toLowerCase?.() || 'spring'] || 40
 
 		if (
 			(anotherClass?.students || 0) +
@@ -133,47 +136,69 @@ export const updateKarateClassById = asyncHandler(async (req: IRequest, res: Res
 async function syncFutureAttendances(classId: string, newStudents: any[]) {
 	try {
 		const today = new Date()
+		today.setHours(0, 0, 0, 0) // Consider from the beginning of today
 		const futureDate = addDays(today, 30) // Sync next 30 days
-		
-		// Find all REAL future attendances for this class (excludes virtual ones)
-		const futureAttendances = await studentAttendanceRepository.findStudentAttendanceByClassAndDates(
-			{ year: today.getFullYear(), month: today.getMonth() + 1, day: today.getDate() },
-			{ year: futureDate.getFullYear(), month: futureDate.getMonth() + 1, day: futureDate.getDate() },
-			classId
-		)
+
+		// This query returns an array of real attendance documents for the specified classId
+		const futureAttendances = await StudentAttendance.find({
+			karateClass: new mongoose.Types.ObjectId(classId),
+			status: 'active',
+			'date.year': { $gte: today.getFullYear() },
+			'date.month': { $gte: today.getMonth() + 1 },
+			'date.day': { $gte: today.getDate() },
+		}).exec()
 
 		let syncedCount = 0
+		const newStudentIds = newStudents.map((s) => s.toString())
 
 		// Update each REAL future attendance
-		for (const attendanceGroup of futureAttendances) {
-			for (const attendanceData of attendanceGroup.karateClasses) {
-				// Get the actual attendance document
-				const attendance = await studentAttendanceRepository.findStudentAttendanceById(attendanceData._id)
-				if (!attendance) continue
+		for (const attendance of futureAttendances) {
+			if (!attendance) continue
 
-				// Preserve existing manual attendance modifications
-				const existingAttendance = attendance.attendance || []
-				
-				// Remove students no longer in class (but preserve manual entries)
-				const preservedAttendance = existingAttendance.filter((item: any) => {
-					// Keep if student is still in class OR it's a day-only/trial entry
-					return newStudents.some(studentId => studentId.toString() === item.student.toString()) ||
-						   item.isDayOnly
-				})
+			const originalAttendanceList = attendance.attendance || []
+			let newAttendanceList = [...originalAttendanceList]
+			let wasModified = false
 
-				// Only update if there were changes
-				if (preservedAttendance.length !== existingAttendance.length) {
-					attendance.attendance = preservedAttendance
-					await studentAttendanceRepository.saveStudentAttendance(attendance)
-					syncedCount++
+			// Students who should be in the attendance
+			const classStudentIds = new Set(newStudentIds)
+
+			// 1. Remove students who are no longer in the class (unless they are day-only)
+			const filteredList = newAttendanceList.filter(
+				(item: any) => classStudentIds.has(item.student.toString()) || item.isDayOnly,
+			)
+
+			if (filteredList.length !== newAttendanceList.length) {
+				newAttendanceList = filteredList
+				wasModified = true
+			}
+
+			// 2. Add new students who are not yet in the attendance list
+			const studentsInAttendance = new Set(newAttendanceList.map((item: any) => item.student.toString()))
+
+			for (const studentId of newStudentIds) {
+				if (!studentsInAttendance.has(studentId)) {
+					newAttendanceList.push({
+						student: studentId as any,
+						attendanceStatus: 'absent',
+						isDayOnly: false,
+					})
+					wasModified = true
 				}
+			}
+
+			if (wasModified) {
+				attendance.attendance = newAttendanceList
+				await studentAttendanceRepository.saveStudentAttendance(attendance)
+				syncedCount++
 			}
 		}
 
-		logger.log({
-			level: 'info',
-			message: `Synced ${syncedCount} real future attendances for class ${classId}. Virtual attendances will auto-regenerate.`,
-		})
+		if (syncedCount > 0) {
+			logger.log({
+				level: 'info',
+				message: `Synced ${syncedCount} real future attendances for class ${classId}. Virtual attendances will auto-regenerate.`,
+			})
+		}
 	} catch (error) {
 		logger.log({
 			level: 'error',
