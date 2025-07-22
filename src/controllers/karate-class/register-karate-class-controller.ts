@@ -5,7 +5,7 @@ import { Response } from 'express'
 import { IRequest } from '../../middleware/auth-middleware'
 import * as karateClassRepository from '../../repositories/karate-class-repository'
 import { BAD_REQUEST, INTERNAL_SERVER_ERROR, CREATED } from '../../utils/http-server-status-codes'
-import { shortDaysOfWeek, shortLevels } from '../../utils/short-values'
+import { shortDaysOfWeek, shortLevels, locationCapacityLimits } from '../../utils/short-values'
 import { TDaysOfWeek, TUserLevel } from '../../utils/common-types'
 import getAgeRangeByMinAndMax from '../../utils/get-age-range-by-min-max'
 import getTimeStringByStartTime from '../../utils/get-time-string-by-start-time'
@@ -55,7 +55,7 @@ export const registerKarateClass = asyncHandler(async (req: IRequest, res: Respo
 
 	const [anotherClass] = classesInTimeRange
 
-	const studentLimit = location?.toLowerCase() === 'katy' ? 20 : 40
+	const studentLimit = locationCapacityLimits[location?.toLowerCase?.() || 'spring'] || 40
 
 	if ((anotherClass?.students || 0) + (anotherClass?.recoveryClasses || 0) + students.length > studentLimit) {
 		res.status(BAD_REQUEST)

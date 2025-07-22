@@ -14,3 +14,7 @@ export async function findRecoveryClassById(recoveryClassId: string) {
 export async function saveRecoveryClass(recoveryClass: HydratedDocument<IRecoveryClass>) {
 	return recoveryClass.save()
 }
+
+export async function findActiveRecoveryClassesByStudentId(studentId: string) {
+	return RecoveryClass.find({ student: studentId, status: 'active' }).lean()
+}

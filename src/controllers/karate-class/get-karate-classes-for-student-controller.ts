@@ -6,6 +6,7 @@ import { differenceInYears, format, subDays } from 'date-fns'
 import { IRequest } from '../../middleware/auth-middleware'
 import * as karateClassRepository from '../../repositories/karate-class-repository'
 import * as attendanceRepository from '../../repositories/student-attendance-repository'
+import * as recoveryClassRepository from '../../repositories/recovery-class-repository'
 import * as userRepository from '../../repositories/user-repository'
 import { NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 
@@ -32,20 +33,29 @@ export const getKarateClassesForStudent = asyncHandler(async (req: IRequest, res
 		throw new Error('No classes found.')
 	}
 
-	//recovery classes
+	// Clases de recuperación
 	const absents = await attendanceRepository.findAbsentsByStudentId(userId)
+	const activeRecoveryClasses = await recoveryClassRepository.findActiveRecoveryClassesByStudentId(userId)
 
 	const response = {
 		karateClasses: karateClasses.map((karateClass) => {
-			const absent = absents?.find((absent) => String(absent?.recoveryClass?.karateClass) === String(karateClass?._id))
+			const recoveryClass = activeRecoveryClasses?.find(
+				(recovery) => String(recovery?.karateClass) === String(karateClass?._id),
+			)
 			return {
 				...karateClass,
-				recoveryClass: absent?.recoveryClass,
+				recoveryClass,
 			}
 		}),
 		absents,
 		recoveryCreditsAdjustment: student.recoveryCreditsAdjustment || 0,
 	}
+
+	// Guardar el response en un archivo debug-totalAttendance.json
+	const fs = require('fs');
+	const path = require('path');
+	const debugPath = path.join(__dirname, '../../../debug-totalAttendance.json');
+	fs.writeFileSync(debugPath, JSON.stringify({ totalAttendance: response }, null, 2), 'utf8');
 
 	res.status(OK).json(response)
 })

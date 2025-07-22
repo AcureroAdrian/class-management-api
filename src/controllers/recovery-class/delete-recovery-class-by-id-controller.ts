@@ -6,6 +6,7 @@ import { differenceInHours } from 'date-fns'
 import { IRequest } from '../../middleware/auth-middleware'
 import * as recoveryClassRepository from '../../repositories/recovery-class-repository'
 import * as studentAttendanceRepository from '../../repositories/student-attendance-repository'
+import * as userRepository from '../../repositories/user-repository'
 import { BAD_REQUEST, INTERNAL_SERVER_ERROR, NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 import { mongoIdValidator } from '../../utils/validators/input-validator'
 
@@ -14,7 +15,7 @@ import { mongoIdValidator } from '../../utils/validators/input-validator'
 // @access  Student
 export const deleteRecoveryClassById = asyncHandler(async (req: IRequest, res: Response) => {
 	const { id } = req.params
-	const hoursLimitToDelete = 6
+	const hoursLimitToDelete = 24
 
 	if (!mongoIdValidator(id)) {
 		res.status(BAD_REQUEST)
@@ -40,9 +41,9 @@ export const deleteRecoveryClassById = asyncHandler(async (req: IRequest, res: R
 	const diffInMs = recoveryDate.getTime() - now.getTime()
 	const hoursUntilClass = diffInMs / (1000 * 60 * 60)
 
-	if (hoursUntilClass < 6) {
+	if (hoursUntilClass < hoursLimitToDelete) {
 		res.status(BAD_REQUEST)
-		throw new Error('You can only cancel a recovery class 6 hours before the class starts.')
+		throw new Error(`You can only cancel a recovery class ${hoursLimitToDelete} hours before the class starts.`)
 	}
 
 	recoveryClass.status = 'deleted'
@@ -52,6 +53,15 @@ export const deleteRecoveryClassById = asyncHandler(async (req: IRequest, res: R
 	if (!recoveryClassDeleted) {
 		res.status(INTERNAL_SERVER_ERROR)
 		throw new Error('Error deleting recovery class.')
+	}
+
+	// Refund credit if it was a manual credit
+	if (!recoveryClass.attendance) {
+		const student = await userRepository.findUserById(String(recoveryClass.student))
+		if (student) {
+			student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) + 1
+			await userRepository.saveUser(student)
+		}
 	}
 
 	// Try to sync with real attendance if it exists
