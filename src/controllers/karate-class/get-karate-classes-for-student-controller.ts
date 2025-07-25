@@ -26,19 +26,31 @@ export const getKarateClassesForStudent = asyncHandler(async (req: IRequest, res
 	const { year, month, day } = student.dateOfBirth
 	const age = differenceInYears(new Date(), new Date(year, month - 1, day))
 
-	const karateClasses = await karateClassRepository.findKarateClassesForStudent(age, student.level, userId)
-
-	if (!karateClasses?.length) {
-		res.status(NOT_FOUND)
-		throw new Error('No classes found.')
-	}
+	const karateClassesByProfile = await karateClassRepository.findKarateClassesForStudent(age, student.level, userId)
 
 	// Clases de recuperación
 	const absents = await attendanceRepository.findAbsentsByStudentId(userId)
 	const activeRecoveryClasses = await recoveryClassRepository.findActiveRecoveryClassesByStudentId(userId)
 
+	// Obtener las clases de las recuperaciones activas
+	const recoveryClassIds = activeRecoveryClasses
+		.map((recovery) => recovery.karateClass)
+		.filter((id) => id)
+		.map((id) => id.toString())
+
+	const karateClassesFromRecoveries = await karateClassRepository.findKarateClassesByIds(recoveryClassIds)
+
+	// Combinar las listas de clases y eliminar duplicados
+	const allKarateClasses = [...karateClassesByProfile, ...karateClassesFromRecoveries]
+	const uniqueKarateClasses = Array.from(new Map(allKarateClasses.map((cls) => [cls._id.toString(), cls])).values())
+
+	if (!uniqueKarateClasses?.length) {
+		res.status(NOT_FOUND)
+		throw new Error('No classes found.')
+	}
+
 	const response = {
-		karateClasses: karateClasses.map((karateClass) => {
+		karateClasses: uniqueKarateClasses.map((karateClass) => {
 			const recoveryClass = activeRecoveryClasses?.find(
 				(recovery) => String(recovery?.karateClass) === String(karateClass?._id),
 			)

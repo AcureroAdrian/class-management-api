@@ -36,3 +36,21 @@ export const forUserStudent = (req: IRequest, res: Response, next: NextFunction)
 
 	next()
 }
+
+export const forAdminOrStudent = (req: IRequest, res: Response, next: NextFunction) => {
+	if (req?.user?.isSuper || req?.user?.isAdmin || !req?.user?.isTeacher) {
+		return next()
+	}
+
+	res.status(UNAUTHORIZED)
+	throw new Error('Not authorized for this action. Only for admins or students.')
+}
+
+export const forAdminOrTeacher = (req: IRequest, res: Response, next: NextFunction) => {
+	if (req?.user?.isSuper || req?.user?.isAdmin || req?.user?.isTeacher) {
+		return next()
+	}
+
+	res.status(UNAUTHORIZED)
+	throw new Error('Not authorized for this action. Only for admins or teachers.')
+}

@@ -401,6 +401,14 @@ export async function findValidKarateClasses() {
 	return KarateClass.find({ status: 'active', students: { $ne: [] } }, 'name description startTime weekDays')
 }
 
+export async function findKarateClassesByIds(classIds: (string | mongoose.Types.ObjectId)[]) {
+	const objectIds = classIds.map(id => new mongoose.Types.ObjectId(String(id)))
+	return KarateClass.find({
+		_id: { $in: objectIds },
+		status: 'active',
+	}).lean()
+}
+
 export async function saveKarateClass(karateClass: HydratedDocument<IKarateClass>) {
 	return karateClass.save()
 }
