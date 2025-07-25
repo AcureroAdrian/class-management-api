@@ -1,0 +1,336 @@
+{
+  "totalAttendance": {
+    "karateClasses": [
+      {
+        "_id": "684ca2c4667462c62c5b3a89",
+        "name": "Test class",
+        "minAge": 0,
+        "maxAge": 100,
+        "levels": [
+          "beginner",
+          "elite",
+          "novice",
+          "intermediate",
+          "advanced"
+        ],
+        "weekDays": [
+          "tuesday",
+          "sunday",
+          "monday",
+          "wednesday"
+        ],
+        "startTime": {
+          "hour": 10,
+          "minute": 0
+        },
+        "students": [
+          "684ca2c4667462c62c5b3a52",
+          "684ca2c4667462c62c5b3a11",
+          "684ca2c4667462c62c5b3a12",
+          "684ca2c4667462c62c5b3a1b",
+          "684ca2c4667462c62c5b3a27",
+          "684ca2c4667462c62c5b3a10",
+          "684ca2c4667462c62c5b3a1a",
+          "684ca2c4667462c62c5b3a14",
+          "684ca2c4667462c62c5b3a17",
+          "684ca2c4667462c62c5b3a1d",
+          "684ca2c4667462c62c5b3a1f",
+          "684ca2c4667462c62c5b3a24",
+          "684ca2c4667462c62c5b3a22",
+          "684ca2c4667462c62c5b3a19",
+          "684ca2c4667462c62c5b3a16",
+          "684ca2c4667462c62c5b3a1c",
+          "684ca2c4667462c62c5b3a15",
+          "684ca2c4667462c62c5b3a28",
+          "684ca2c4667462c62c5b3a1e",
+          "684ca2c4667462c62c5b3a0f",
+          "684ca2c4667462c62c5b3a23"
+        ],
+        "location": "katy",
+        "description": "Test class to change data and book recovery class",
+        "recoveryClasses": [
+          "687e698b43317e142a369678",
+          "687e699443317e142a369683",
+          "687e6a6343317e142a36968e",
+          "687f0274a09ff5b7f1d0e840",
+          "687f02b9a09ff5b7f1d0e8a0",
+          "687f06e2b2ea1a35c7e8350f",
+          "687f06edb2ea1a35c7e8352c",
+          "687f077e1a65c7c26a64dc61",
+          "687f07b31a65c7c26a64dc80",
+          "687f0819e00c1fd28dfb4550",
+          "68817a128208fed34a75eb1a",
+          "68817a258208fed34a75eb8f",
+          "68817a318208fed34a75ec04",
+          "68817adf549f9145e895cb16",
+          "68817b4ec168cbb1f59f0701",
+          "68817be7e383904ed93a6f1d",
+          "6881a2e2d6782e899f14e20e",
+          "68829d957a9e66bb6ee6ca16",
+          "6882aba0ab2a5a09eb6ada8d",
+          "6882ac47ab2a5a09eb6adb71",
+          "6882adddc8d0ef48ce5ce4eb",
+          "6882ae8b050ffc9b2eabbbff",
+          "6882aebf050ffc9b2eabbd7d",
+          "6882c9da0c54a4469f8dd399",
+          "6882cc02bc21fc825d88359e",
+          "6882cc11bc21fc825d8835e9",
+          "6882cc17bc21fc825d88362c",
+          "6882cc56bc21fc825d883736",
+          "6882cc60bc21fc825d883784",
+          "6882cca6bc21fc825d883840",
+          "6882ccabbc21fc825d883888",
+          "6882ccc7bc21fc825d8838d7",
+          "6882ef6fbc87c9a558484aba",
+          "6882f017bc87c9a558484c08",
+          "6882f024bc87c9a558484c53"
+        ],
+        "status": "active",
+        "__v": 48,
+        "createdAt": "2025-06-13T22:14:28.547Z",
+        "updatedAt": "2025-07-25T02:47:00.913Z"
+      },
+      {
+        "_id": "684ca2c4667462c62c5b3a8d",
+        "name": "Armando Little Class",
+        "minAge": 8,
+        "maxAge": 61,
+        "levels": [
+          "intermediate"
+        ],
+        "weekDays": [
+          "monday"
+        ],
+        "startTime": {
+          "hour": 17,
+          "minute": 15
+        },
+        "students": [
+          "685743ac97fd7bf0af588613",
+          "684ca2c4667462c62c5b3a11",
+          "684ca2c4667462c62c5b3a12",
+          "684ca2c4667462c62c5b3a18",
+          "684ca2c4667462c62c5b3a13",
+          "684ca2c4667462c62c5b3a0c",
+          "684ca2c4667462c62c5b3a10",
+          "684ca2c4667462c62c5b3a1a",
+          "684ca2c4667462c62c5b3a14",
+          "684ca2c4667462c62c5b3a17",
+          "684ca2c4667462c62c5b3a19",
+          "684ca2c4667462c62c5b3a16",
+          "684ca2c4667462c62c5b3a15",
+          "684ca2c4667462c62c5b3a0f"
+        ],
+        "location": "spring",
+        "description": "Clase de karate dirigida por Armando Little",
+        "recoveryClasses": [],
+        "status": "active",
+        "__v": 1,
+        "createdAt": "2025-06-13T22:14:28.548Z",
+        "updatedAt": "2025-07-22T04:01:17.596Z"
+      },
+      {
+        "_id": "684ca2c4667462c62c5b3a9c",
+        "name": "Kirstin Heller Class",
+        "minAge": 5,
+        "maxAge": 75,
+        "levels": [
+          "intermediate"
+        ],
+        "weekDays": [
+          "thursday"
+        ],
+        "startTime": {
+          "hour": 9,
+          "minute": 50
+        },
+        "students": [
+          "684ca2c4667462c62c5b3a0c",
+          "684ca2c4667462c62c5b3a0f",
+          "684ca2c4667462c62c5b3a10",
+          "684ca2c4667462c62c5b3a11",
+          "684ca2c4667462c62c5b3a12",
+          "684ca2c4667462c62c5b3a13",
+          "684ca2c4667462c62c5b3a14",
+          "684ca2c4667462c62c5b3a15",
+          "684ca2c4667462c62c5b3a16"
+        ],
+        "location": "katy",
+        "description": "Clase de karate dirigida por Kirstin Heller",
+        "recoveryClasses": [
+          "68830643409bd582fb6718a0"
+        ],
+        "status": "active",
+        "__v": 2,
+        "createdAt": "2025-06-13T22:14:28.548Z",
+        "updatedAt": "2025-07-25T04:21:23.798Z"
+      },
+      {
+        "_id": "684ca2c4667462c62c5b3aa1",
+        "name": "Griffin Homenick Class",
+        "minAge": 0,
+        "maxAge": 100,
+        "levels": [
+          "novice",
+          "beginner",
+          "intermediate",
+          "advanced",
+          "elite"
+        ],
+        "weekDays": [
+          "wednesday"
+        ],
+        "startTime": {
+          "hour": 17,
+          "minute": 45
+        },
+        "students": [
+          "684ca2c4667462c62c5b3a0c",
+          "684ca2c4667462c62c5b3a0f",
+          "684ca2c4667462c62c5b3a10",
+          "684ca2c4667462c62c5b3a11",
+          "684ca2c4667462c62c5b3a12",
+          "684ca2c4667462c62c5b3a13",
+          "684ca2c4667462c62c5b3a14",
+          "684ca2c4667462c62c5b3a15",
+          "684ca2c4667462c62c5b3a16",
+          "684ca2c4667462c62c5b3a17",
+          "684ca2c4667462c62c5b3a18",
+          "684ca2c4667462c62c5b3a19",
+          "684ca2c4667462c62c5b3a1a",
+          "684ca2c4667462c62c5b3a1b",
+          "684ca2c4667462c62c5b3a1c",
+          "684ca2c4667462c62c5b3a1d",
+          "684ca2c4667462c62c5b3a1e",
+          "684ca2c4667462c62c5b3a1f",
+          "684ca2c4667462c62c5b3a20",
+          "684ca2c4667462c62c5b3a21",
+          "684ca2c4667462c62c5b3a22"
+        ],
+        "location": "spring",
+        "description": "Clase de karate dirigida por Griffin Homenick",
+        "recoveryClasses": [
+          "687f08d5b334c939464f0d87",
+          "687f08e4b334c939464f0dbc",
+          "6881a58c37f8df2024643892",
+          "68830404409bd582fb671401"
+        ],
+        "status": "active",
+        "__v": 7,
+        "createdAt": "2025-06-13T22:14:28.548Z",
+        "updatedAt": "2025-07-25T04:11:48.565Z"
+      },
+      {
+        "_id": "684ca2c4667462c62c5b3aa2",
+        "name": "Carleton Stamm Class",
+        "minAge": 14,
+        "maxAge": 79,
+        "levels": [
+          "intermediate"
+        ],
+        "weekDays": [
+          "tuesday"
+        ],
+        "startTime": {
+          "hour": 16,
+          "minute": 55
+        },
+        "students": [
+          "684ca2c4667462c62c5b3a0c",
+          "684ca2c4667462c62c5b3a0f",
+          "684ca2c4667462c62c5b3a10",
+          "684ca2c4667462c62c5b3a11",
+          "684ca2c4667462c62c5b3a12",
+          "684ca2c4667462c62c5b3a13",
+          "684ca2c4667462c62c5b3a14",
+          "684ca2c4667462c62c5b3a15",
+          "684ca2c4667462c62c5b3a16",
+          "684ca2c4667462c62c5b3a17",
+          "684ca2c4667462c62c5b3a18",
+          "684ca2c4667462c62c5b3a19",
+          "684ca2c4667462c62c5b3a1a",
+          "684ca2c4667462c62c5b3a1b",
+          "684ca2c4667462c62c5b3a1c",
+          "684ca2c4667462c62c5b3a1d",
+          "684ca2c4667462c62c5b3a1e",
+          "684ca2c4667462c62c5b3a1f",
+          "684ca2c4667462c62c5b3a20",
+          "684ca2c4667462c62c5b3a22",
+          "684ca2c4667462c62c5b3a23",
+          "684ca2c4667462c62c5b3a24",
+          "684ca2c4667462c62c5b3a25",
+          "684ca2c4667462c62c5b3a26",
+          "685743ac97fd7bf0af588613",
+          "684ca2c4667462c62c5b3a28"
+        ],
+        "location": "spring",
+        "description": "Clase de karate dirigida por Carleton Stamm",
+        "recoveryClasses": [
+          "6881a316d6782e899f14e299"
+        ],
+        "status": "active",
+        "__v": 4,
+        "createdAt": "2025-06-13T22:14:28.548Z",
+        "updatedAt": "2025-07-24T03:05:58.814Z"
+      },
+      {
+        "_id": "687f2df023e8e32df05b33bd",
+        "name": "Nueva class",
+        "minAge": 0,
+        "maxAge": 100,
+        "levels": [
+          "beginner",
+          "novice",
+          "intermediate",
+          "advanced",
+          "elite"
+        ],
+        "weekDays": [
+          "sunday",
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday"
+        ],
+        "startTime": {
+          "hour": 20,
+          "minute": 21
+        },
+        "students": [
+          "685743ac97fd7bf0af588613",
+          "684ca2c4667462c62c5b3a10",
+          "684ca2c4667462c62c5b3a0c",
+          "684ca2c4667462c62c5b3a28"
+        ],
+        "location": "katy",
+        "description": "✅",
+        "recoveryClasses": [
+          "6882c724ec72efa2e2996847",
+          "6882c9a40c54a4469f8dd1ef",
+          "6882c9b90c54a4469f8dd283",
+          "6882c9d40c54a4469f8dd383",
+          "6882ca630c54a4469f8dd4c8",
+          "6882cb3ebc21fc825d883560",
+          "6882cc47bc21fc825d8836dd",
+          "6882cd0bbc21fc825d8839aa",
+          "6882cd27bc21fc825d8839e2",
+          "6882efe5bc87c9a558484b9d",
+          "6882f003bc87c9a558484bcd",
+          "6882f010bc87c9a558484bf6",
+          "6882f959ad59efb2e7279ba4",
+          "6882f976ad59efb2e7279bd1",
+          "6882fb12ad59efb2e7279f2c",
+          "6883037d409bd582fb6711c8"
+        ],
+        "status": "active",
+        "createdAt": "2025-07-22T06:21:36.948Z",
+        "updatedAt": "2025-07-25T04:10:14.468Z",
+        "__v": 22
+      }
+    ],
+    "absents": [],
+    "recoveryCreditsAdjustment": 0
+  }
+}

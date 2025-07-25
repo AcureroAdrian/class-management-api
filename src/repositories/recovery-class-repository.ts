@@ -18,3 +18,17 @@ export async function saveRecoveryClass(recoveryClass: HydratedDocument<IRecover
 export async function findActiveRecoveryClassesByStudentId(studentId: string) {
 	return RecoveryClass.find({ student: studentId, status: 'active' }).lean()
 }
+
+export async function findRecoveryClassByDetails(studentId: string, karateClassId: string, date: any) {
+	return RecoveryClass.findOne({
+		student: studentId,
+		karateClass: karateClassId,
+		'date.day': date.day,
+		'date.month': date.month,
+		'date.year': date.year,
+	})
+}
+
+export async function deleteRecoveryClassById(recoveryClassId: string) {
+	return RecoveryClass.findByIdAndDelete(recoveryClassId)
+}

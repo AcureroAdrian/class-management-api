@@ -4,6 +4,7 @@ import asyncHandler from 'express-async-handler'
 import { Response } from 'express'
 import { IRequest } from '../../middleware/auth-middleware'
 import * as userRepository from '../../repositories/user-repository'
+import * as studentAttendanceRepository from '../../repositories/student-attendance-repository'
 import { NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 
 // @desc    Get all student users
@@ -19,5 +20,16 @@ export const getStudentUsers = asyncHandler(async (req: IRequest, res: Response)
 		throw new Error(mode === 'teachers' ? 'No teachers found.' : 'No students found.')
 	}
 
-	res.status(OK).json(students)
+	const studentsWithRecoveryCredits = await Promise.all(
+		students.map(async (student) => {
+			const absents = await studentAttendanceRepository.findAbsentsByStudentId(student._id.toString())
+			const recoveryCredits = (absents?.length || 0) + (student.recoveryCreditsAdjustment || 0)
+			return {
+				...student,
+				recoveryCredits,
+			}
+		}),
+	)
+
+	res.status(OK).json(studentsWithRecoveryCredits)
 })

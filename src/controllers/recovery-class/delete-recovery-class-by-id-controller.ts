@@ -16,6 +16,7 @@ import { mongoIdValidator } from '../../utils/validators/input-validator'
 export const deleteRecoveryClassById = asyncHandler(async (req: IRequest, res: Response) => {
 	const { id } = req.params
 	const hoursLimitToDelete = 24
+	const forceDelete = req.query.force === 'true'
 
 	if (!mongoIdValidator(id)) {
 		res.status(BAD_REQUEST)
@@ -41,7 +42,7 @@ export const deleteRecoveryClassById = asyncHandler(async (req: IRequest, res: R
 	const diffInMs = recoveryDate.getTime() - now.getTime()
 	const hoursUntilClass = diffInMs / (1000 * 60 * 60)
 
-	if (hoursUntilClass < hoursLimitToDelete) {
+	if (!forceDelete && hoursUntilClass < hoursLimitToDelete) {
 		res.status(BAD_REQUEST)
 		throw new Error(`You can only cancel a recovery class ${hoursLimitToDelete} hours before the class starts.`)
 	}

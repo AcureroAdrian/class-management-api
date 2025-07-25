@@ -18,3 +18,7 @@ export async function findHolidayById(holidayId: string) {
 export async function saveHoliday(holiday: HydratedDocument<IHoliday>) {
 	return holiday.save()
 }
+
+export async function getAllHolidays() {
+	return Holiday.find({ status: 'active' }).select('date').lean()
+}

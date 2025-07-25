@@ -14,10 +14,11 @@ import { locationCapacityLimits } from '../../utils/short-values'
 
 // @desc    Booking recovery karate class by id
 // @route   PUT /api/karate-classes/recovery-class/:id
-// @access  Student
+// @access  Student or Admin
 export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: Response) => {
 	const { id } = req.params
 	const { studentId, attendanceId, date } = req.body
+
 
 	if (!mongoIdValidator(id)) {
 		res.status(BAD_REQUEST)
@@ -29,16 +30,33 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 	}
 	if (attendanceId && !mongoIdValidator(attendanceId)) {
 		res.status(BAD_REQUEST)
-		throw new Error('Invalid absentence.')
+		throw new Error('Invalid absence.')
 	}
 
-	if (!attendanceId) {
+	let finalAttendanceId = attendanceId
+
+	// If no specific absence is provided, find one automatically
+	if (!finalAttendanceId) {
 		const student = await userRepository.findUserById(studentId)
-		const absents = await studentAttendanceRepository.findAbsentsByStudentId(studentId)
-		const totalRecoveryCredits = (absents?.length || 0) + (student.recoveryCreditsAdjustment || 0)
-		if (!student || totalRecoveryCredits <= 0) {
+		if (!student) {
 			res.status(BAD_REQUEST)
-			throw new Error('Student has no recovery credits.')
+			throw new Error('Student not found.')
+		}
+
+		const allAbsences = await studentAttendanceRepository.findAbsentsByStudentId(studentId)
+
+		// Filter for absences that don't have a recovery class linked yet
+		const unbookedAbsences = allAbsences.filter((absence: any) => !absence.recoveryClass)
+
+		if (unbookedAbsences.length > 0) {
+			// Use the oldest unbooked absence
+			finalAttendanceId = unbookedAbsences[0]._id.toString()
+		} else {
+			// No unbooked absences, check for general adjustment credits
+			if ((student.recoveryCreditsAdjustment || 0) <= 0) {
+				res.status(BAD_REQUEST)
+				throw new Error('Student has no recovery credits.')
+			}
 		}
 	}
 
@@ -52,7 +70,7 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 		karateClass?.weekDays,
 	)
 
-	// Otra clase para verificar si hay espacio en el horario
+	// Another class to check for space in the schedule
 	const [anotherClass] = classesInTimeRange?.filter((classInTimeRange) => String(classInTimeRange._id) !== id)
 	const selfClassInfo = classesInTimeRange?.find((classInTimeRange) => String(classInTimeRange._id) === id)
 
@@ -85,8 +103,8 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 		date,
 	}
 
-	if (attendanceId) {
-		recoveryClassPayload.attendance = attendanceId
+	if (finalAttendanceId) {
+		recoveryClassPayload.attendance = finalAttendanceId
 	}
 
 	const recoveryClass = await recoveryClassRepository.createRecoveryClass(recoveryClassPayload)
@@ -96,7 +114,8 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 		throw new Error('Error creating recovery class.')
 	}
 
-	if (!attendanceId) {
+	if (!finalAttendanceId) {
+		// This means an adjustment credit was used
 		const student = await userRepository.findUserById(studentId)
 		if (student) {
 			student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) - 1
@@ -115,7 +134,7 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 	}
 
 	// Try to sync with real attendance if it exists
-	if (attendanceId) {
+	if (recoveryClass) {
 		try {
 			await studentAttendanceRepository.syncRecoveryWithRealAttendance(
 				'add',

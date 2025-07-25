@@ -3,6 +3,7 @@
 import { format } from 'date-fns'
 import mongoose, { HydratedDocument } from 'mongoose'
 import { StudentAttendance, IStudentAttendance, IStudentAttendanceDocument } from '../models/StudentAttendance'
+import * as karateClassRepository from './karate-class-repository'
 const { ObjectId } = mongoose.Types
 
 export async function createStudentAttendance(studentAttendance: IStudentAttendanceDocument) {
@@ -402,6 +403,25 @@ export async function findStudentAttendanceByDay(year: number, month: number, da
 						isRecovery: {
 							$in: ['$attendance.student', '$recoveryClasses.student'],
 						},
+						recoveryClassId: {
+							$let: {
+								vars: {
+									matchedRecovery: {
+										$arrayElemAt: [
+											{
+												$filter: {
+													input: '$recoveryClasses',
+													as: 'rc',
+													cond: { $eq: ['$$rc.student', '$attendance.student'] },
+												},
+											},
+											0,
+										],
+									},
+								},
+								in: '$$matchedRecovery._id',
+							},
+						},
 					},
 				},
 			},
@@ -549,7 +569,31 @@ export async function syncRecoveryWithRealAttendance(
 ) {
 	try {
 		// Find real attendance for this specific date and class
-		const attendance = await findRealAttendanceByDateAndClass(karateClassId, date)
+		let attendance = await findRealAttendanceByDateAndClass(karateClassId, date)
+
+		// If attendance doesn't exist and we are adding a student, create it first
+		if (!attendance && action === 'add') {
+			const karateClass = await karateClassRepository.findKarateClassById(karateClassId.toString())
+			if (!karateClass) {
+				console.log(`Sync failed: Karate class ${karateClassId} not found.`)
+				return // or throw error
+			}
+			const newAttendanceData = {
+				karateClass: karateClassId,
+				date: date,
+				attendance: karateClass.students.map((sId: any) => ({
+					student: sId,
+					attendanceStatus: 'absent' as any,
+					isDayOnly: false,
+				})),
+				status: 'active' as any,
+			}
+			attendance = await createStudentAttendance(newAttendanceData)
+			if (!attendance) {
+				console.log(`Sync failed: Could not create new attendance for class ${karateClassId}.`)
+				return // or throw error
+			}
+		}
 
 		if (!attendance) {
 			return
