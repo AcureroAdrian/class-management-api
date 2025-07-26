@@ -7,23 +7,26 @@ import { IRequest } from '../../middleware/auth-middleware'
 import { IKarateClass } from '../../models/KarateClass'
 import * as karateClassRepository from '../../repositories/karate-class-repository'
 import * as studentAttendanceRepository from '../../repositories/student-attendance-repository'
+import * as recoveryClassRepository from '../../repositories/recovery-class-repository'
 import * as holidayRepository from '../../repositories/holiday-repository'
 import getNameOfWeekDayByDay from '../../utils/get-name-of-week-day-by-day'
 import { NOT_FOUND, OK, BAD_REQUEST } from '../../utils/http-server-status-codes'
-import { subDays } from 'date-fns'
+import { createHoustonDate, getPreviousDayInHouston } from '../../utils/houston-timezone'
 
 // @desc    Get all student attendances by a specific day
 // @route   GET /api/student-attendances?year&month&day
-// @access  Admin
+// @access  Admin or Teacher
 export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res: Response) => {
-	const today = subDays(new Date(), 1)
-	today.setHours(23, 0, 0, 0)
+	// Obtener el día anterior en zona horaria de Houston
+	const today = getPreviousDayInHouston()
+
 	const { year, month, day } = req.query
 	const validYear = Number(year || 0)
 	const validMonth = Number(month || 0)
 	const validDay = Number(day || 0)
 
-	const selectedDay = new Date(validYear, validMonth - 1, validDay)
+	// Crear la fecha seleccionada en zona horaria de Houston con hora 00:00:00.000
+	const selectedDay = createHoustonDate(validYear, validMonth, validDay)
 
 	const savedStudentAttendance = await studentAttendanceRepository.findStudentAttendanceByDay(
 		validYear,
@@ -47,8 +50,7 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 			day: validDay,
 		})
 
-
-		validClasses.forEach((karateClass) => {
+		for (const karateClass of validClasses) {
 			const { hour, minute } = karateClass?.startTime || {}
 			const existsAttendance = savedStudentAttendance?.find(
 				(attendance) =>
@@ -58,37 +60,52 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 			)
 
 			if (existsAttendance) {
-				return
+				continue
 			}
+
+			// Find recovery students for this specific class and day
+			const recoveryStudentsOnDate = await recoveryClassRepository.findRecoveryClassByDetails(
+				undefined,
+				karateClass._id.toString(),
+				{ year: validYear, month: validMonth, day: validDay, hour, minute },
+			)
+
+			// Combine regular and recovery students
+			const regularStudents = karateClass?.students?.map((student) => ({
+				student: student,
+				attendanceStatus: 'absent',
+				observations: '',
+				isDayOnly: false,
+				isRecovery: false,
+			}))
+
+			const recoveryStudents = recoveryStudentsOnDate.map((recovery: any) => ({
+				student: recovery.student,
+				attendanceStatus: 'absent',
+				observations: 'Recovery Class',
+				isDayOnly: false,
+				isRecovery: true,
+			}))
+
+			const allStudentsForClass = [...regularStudents, ...recoveryStudents]
+
+			// Remove duplicates (a student might be in both lists, though unlikely)
+			const uniqueStudents = Array.from(new Map(allStudentsForClass.map((s) => [s.student._id.toString(), s])).values())
 
 			// Generate deterministic virtual ID
 			const virtualId = `virtual-${karateClass._id}-${validYear}-${validMonth}-${validDay}-${hour}-${minute}`
 
-			const virtualAttendanceStudents = karateClass?.students?.map((student) => ({
-				student: student,
-				attendanceStatus: "absent",
-				observations: "",
-				isDayOnly: false,
-				isRecovery: false
-			}))
-			
 			const virtualAttendance = {
 				_id: virtualId,
-				isVirtual: true, // Flag to identify virtual attendances
+				isVirtual: true,
 				karateClass: karateClass,
-				date: {
-					year: validYear,
-					month: validMonth,
-					day: validDay,
-					hour,
-					minute,
-				},
-				attendance: virtualAttendanceStudents,
+				date: { year: validYear, month: validMonth, day: validDay, hour, minute },
+				attendance: uniqueStudents,
 				status: 'active',
 			}
 
 			virtualAttendances.push(virtualAttendance)
-		})
+		}
 	}
 
 	// Add isVirtual flag to real attendances for consistency
