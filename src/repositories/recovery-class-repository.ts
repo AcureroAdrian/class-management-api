@@ -19,14 +19,22 @@ export async function findActiveRecoveryClassesByStudentId(studentId: string) {
 	return RecoveryClass.find({ student: studentId, status: 'active' }).lean()
 }
 
-export async function findRecoveryClassByDetails(studentId: string, karateClassId: string, date: any) {
-	return RecoveryClass.findOne({
-		student: studentId,
+export async function findRecoveryClassByDetails(studentId: string | undefined, karateClassId: string, date: any) {
+	const query: any = {
 		karateClass: karateClassId,
-		'date.day': date.day,
-		'date.month': date.month,
 		'date.year': date.year,
-	})
+		'date.month': date.month,
+		'date.day': date.day,
+		'date.hour': date.hour,
+		'date.minute': date.minute,
+		status: 'active', // Only look for active bookings
+	}
+
+	if (studentId) {
+		query.student = studentId
+	}
+
+	return RecoveryClass.find(query).populate('student').lean()
 }
 
 export async function deleteRecoveryClassById(recoveryClassId: string) {
