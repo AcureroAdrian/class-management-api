@@ -84,7 +84,8 @@ export const removeStudentFromAttendance = asyncHandler(async (req: IRequest, re
 	const karateClassId = attendance.karateClass.toString()
 	const attendanceDate = attendance.date
 
-	const recoveryClass = await recoveryClassRepository.findRecoveryClassByDetails(studentId, karateClassId, attendanceDate)
+	const recoveryClasses = await recoveryClassRepository.findRecoveryClassByDetails(studentId, karateClassId, attendanceDate)
+	const recoveryClass = recoveryClasses[0] // Take the first match, if any
 
 	if (recoveryClass) {
 		// This was a makeup student, so we need to process the credit refund.
