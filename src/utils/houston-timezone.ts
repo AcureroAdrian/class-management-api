@@ -22,20 +22,8 @@ export const getCurrentDateInHouston = (): Date => {
  * @returns Date en zona horaria de Houston con tiempo en 00:00:00.000
  */
 export const createHoustonDate = (year: number, month: number, day: number): Date => {
-	// Crear fecha en zona horaria de Houston
-	const houstonDate = new Date(year, month - 1, day)
-	
-	// Convertir a string en zona horaria de Houston y crear nueva fecha
-	const houstonString = houstonDate.toLocaleString('en-US', { 
-		timeZone: 'America/Chicago',
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit'
-	})
-	
-	// Crear nueva fecha con solo año, mes y día (hora 00:00:00.000)
-	const [monthStr, dayStr, yearStr] = houstonString.split('/')
-	const cleanDate = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr))
+	// Crear fecha directamente con los parámetros dados
+	const cleanDate = new Date(year, month - 1, day)
 	
 	// Asegurar que la hora, minuto, segundo y milisegundo sean 0
 	cleanDate.setHours(0, 0, 0, 0)
@@ -64,14 +52,14 @@ export const isSameDayInHouston = (date1: Date, date2: Date): boolean => {
  * @returns Date del día anterior en zona horaria de Houston
  */
 export const getPreviousDayInHouston = (date?: Date): Date => {
-	const referenceDate = date || new Date()
-	const houstonDate = new Date(referenceDate.toLocaleString('en-US', { timeZone: 'America/Chicago' }))
+	const referenceDate = date || getCurrentDateInHouston()
 	
 	// Restar un día
-	houstonDate.setDate(houstonDate.getDate() - 1)
+	const previousDay = new Date(referenceDate)
+	previousDay.setDate(previousDay.getDate() - 1)
 	
 	// Asegurar que la hora, minuto, segundo y milisegundo sean 0
-	houstonDate.setHours(0, 0, 0, 0)
+	previousDay.setHours(0, 0, 0, 0)
 	
-	return houstonDate
+	return previousDay
 } 
