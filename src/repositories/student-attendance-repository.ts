@@ -309,6 +309,7 @@ export async function findStudentAttendanceByDatesAndStudentId(
 				attendanceStatus: '$attendance.attendanceStatus',
 				observations: '$attendance.observations',
 				isDayOnly: '$attendance.isDayOnly',
+				isRecovery: '$attendance.isRecovery',
 			},
 		},
 	])
