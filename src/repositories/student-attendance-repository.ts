@@ -482,6 +482,8 @@ export async function findAbsentsByStudentId(studentId: string) {
 			$match: {
 				'attendance.student': new ObjectId(studentId),
 				'attendance.attendanceStatus': 'absent', // REVISAR
+				'attendance.isDayOnly': { $ne: true },
+				'attendance.isRecovery': { $ne: true },
 			},
 		},
 		{
