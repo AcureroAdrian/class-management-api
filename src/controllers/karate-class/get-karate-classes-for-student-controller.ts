@@ -30,8 +30,11 @@ export const getKarateClassesForStudent = asyncHandler(async (req: IRequest, res
 	const karateClassesByProfile = await karateClassRepository.findKarateClassesForStudent(age, student.level, userId)
 
 	// Clases de recuperación
-	const absents = await attendanceRepository.findAbsentsByStudentId(userId)
+	const absents = await attendanceRepository.findAbsentsByStudentId(userId, { onlyUnbooked: true })
 	const activeRecoveryClasses = await recoveryClassRepository.findActiveRecoveryClassesByStudentId(userId)
+
+	// En este punto ya vienen solo ausencias no reservadas
+	const unbookedAbsents = absents
 
 	// Obtener las clases de las recuperaciones activas
 	const recoveryClassIds = activeRecoveryClasses
@@ -82,9 +85,11 @@ export const getKarateClassesForStudent = asyncHandler(async (req: IRequest, res
 				recoveryClass: finalRecoveryClass,
 			}
 		}),
-		absents,
+		absents: unbookedAbsents,
 		recoveryCreditsAdjustment: student.recoveryCreditsAdjustment || 0,
 	}
+
+	console.log(response.absents, 'absents', response.recoveryCreditsAdjustment, 'recoveryCreditsAdjustment')
 
 	res.status(OK).json(response)
 })

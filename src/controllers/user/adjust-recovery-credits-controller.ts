@@ -34,7 +34,7 @@ export const adjustRecoveryCredits = asyncHandler(async (req: IRequest, res: Res
 	}
 
 	if (adjustment === -1) {
-		const absents = await studentAttendanceRepository.findAbsentsByStudentId(studentId)
+		const absents = await studentAttendanceRepository.findAbsentsByStudentId(studentId, { onlyUnbooked: true })
 		const totalRecoveryCredits = (absents?.length || 0) + (student.recoveryCreditsAdjustment || 0)
 
 		if (totalRecoveryCredits <= 0) {
@@ -57,7 +57,7 @@ export const adjustRecoveryCredits = asyncHandler(async (req: IRequest, res: Res
 		message: `Recovery credits for student ${student.name} ${student.lastName} adjusted by ${adjustment}. New adjustment value: ${updatedStudent.recoveryCreditsAdjustment}`,
 	})
 
-	const absents = await studentAttendanceRepository.findAbsentsByStudentId(studentId)
+	const absents = await studentAttendanceRepository.findAbsentsByStudentId(studentId, { onlyUnbooked: true })
 	const totalRecoveryCredits = (absents?.length || 0) + (updatedStudent.recoveryCreditsAdjustment || 0)
 
 	const studentData = {

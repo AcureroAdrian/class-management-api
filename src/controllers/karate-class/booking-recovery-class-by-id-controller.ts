@@ -43,10 +43,7 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 			throw new Error('Student not found.')
 		}
 
-		const allAbsences = await studentAttendanceRepository.findAbsentsByStudentId(studentId)
-
-		// Filter for absences that don't have a recovery class linked yet
-		const unbookedAbsences = allAbsences.filter((absence: any) => !absence.recoveryClass)
+		const unbookedAbsences = await studentAttendanceRepository.findAbsentsByStudentId(studentId, { onlyUnbooked: true })
 
 		if (unbookedAbsences.length > 0) {
 			// Use the oldest unbooked absence

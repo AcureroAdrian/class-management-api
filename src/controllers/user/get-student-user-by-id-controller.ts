@@ -26,7 +26,7 @@ export const getStudentUserById = asyncHandler(async (req: IRequest, res: Respon
 		throw new Error('Student not found.')
 	}
 
-	const absents = await studentAttendanceRepository.findAbsentsByStudentId(id)
+	const absents = await studentAttendanceRepository.findAbsentsByStudentId(id, { onlyUnbooked: true })
 	const totalRecoveryCredits = (absents?.length || 0) + (student.recoveryCreditsAdjustment || 0)
 
 	const studentData = {

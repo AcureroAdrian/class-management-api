@@ -440,9 +440,10 @@ export async function findStudentAttendanceByDay(year: number, month: number, da
 	])
 }
 
-export async function findAbsentsByStudentId(studentId: string) {
+export async function findAbsentsByStudentId(studentId: string, options: { onlyUnbooked?: boolean } = {}) {
+	const { onlyUnbooked = false } = options
 	const [year, month, day] = format(new Date(), 'yyyy-MM-dd').split('-')
-	return StudentAttendance.aggregate([
+	const pipeline: any[] = [
 		{
 			$addFields: {
 				today: {
@@ -495,35 +496,18 @@ export async function findAbsentsByStudentId(studentId: string) {
 				},
 				pipeline: [
 					{
-						$addFields: {
-							today: {
-								$dateFromParts: {
-									year: Number(year),
-									month: Number(month),
-									day: Number(day),
-								},
-							},
-							recoveryDate: {
-								$dateFromParts: {
-									year: '$date.year',
-									month: '$date.month',
-									day: '$date.day',
-								},
-							},
-						},
-					},
-					{
 						$match: {
 							status: 'active',
 							$expr: {
 								$and: [
 									{ $eq: ['$attendance', '$$attendanceId'] },
-									{ $gt: ['$recoveryDate', '$today'] },
 									{ $eq: [{ $toString: '$student' }, '$$studentId'] },
 								],
 							},
 						},
 					},
+					{ $sort: { 'date.year': 1, 'date.month': 1, 'date.day': 1, 'date.hour': 1, 'date.minute': 1 } },
+					{ $limit: 1 },
 				],
 				as: 'recoveryClass',
 			},
@@ -539,7 +523,14 @@ export async function findAbsentsByStudentId(studentId: string) {
 				attendanceDate: 1,
 			},
 		},
-	])
+	]
+
+	// Opcional: devolver solo ausencias no reservadas
+	if (onlyUnbooked) {
+		pipeline.push({ $match: { recoveryClass: null } })
+	}
+
+	return StudentAttendance.aggregate(pipeline)
 }
 
 export async function saveStudentAttendance(studentAttendace: HydratedDocument<IStudentAttendance>) {
