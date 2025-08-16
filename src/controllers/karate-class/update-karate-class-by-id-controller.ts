@@ -12,6 +12,8 @@ import { addDays } from 'date-fns'
 import mongoose from 'mongoose'
 import { StudentAttendance } from '../../models/StudentAttendance'
 import { locationCapacityLimits } from '../../utils/short-values'
+import getNameOfWeekDayByDay from '../../utils/get-name-of-week-day-by-day'
+import { RecoveryClass } from '../../models/RecoveryClass'
 
 // @desc    PATCH update karate class by id
 // @route   PATCH /api/karate-classes/:id
@@ -61,6 +63,10 @@ export const updateKarateClassById = asyncHandler(async (req: IRequest, res: Res
 		res.status(BAD_REQUEST)
 		throw new Error('Class not found.')
 	}
+
+	// Preserve original schedule values to determine if schedule-related fields changed
+	const originalStartTime = karateClass?.startTime ? { ...karateClass.startTime } : undefined
+	const originalWeekDays = karateClass?.weekDays ? [...karateClass.weekDays] : undefined
 
 	Object.keys(data).forEach((key) => {
 		;(karateClass as any)[key] = data[key]
@@ -121,6 +127,30 @@ export const updateKarateClassById = asyncHandler(async (req: IRequest, res: Res
 	// Sync future attendances if students array changed
 	if (data.students) {
 		await syncFutureAttendances(karateClassId, updatedKarateClass.students)
+	}
+
+	// Sync schedule (time and valid weekdays) for future REAL attendances if schedule changed
+	const startTimeChanged = Boolean(
+		data?.startTime &&
+		(
+			originalStartTime?.hour !== data.startTime.hour ||
+			originalStartTime?.minute !== data.startTime.minute
+		),
+	)
+	const weekDaysChanged = Boolean(
+		Array.isArray(data?.weekDays) && originalWeekDays &&
+		(
+			originalWeekDays.length !== data.weekDays.length ||
+			originalWeekDays.some((d) => !data.weekDays.includes(d))
+		),
+	)
+
+	if (startTimeChanged || weekDaysChanged) {
+		await syncFutureAttendancesSchedule(
+			karateClassId,
+			startTimeChanged ? { hour: updatedKarateClass.startTime?.hour || 0, minute: updatedKarateClass.startTime?.minute || 0 } : undefined,
+			weekDaysChanged ? updatedKarateClass.weekDays : undefined,
+		)
 	}
 
 	logger.log({
@@ -203,6 +233,86 @@ async function syncFutureAttendances(classId: string, newStudents: any[]) {
 		logger.log({
 			level: 'error',
 			message: `Failed to sync future attendances for class ${classId}: ${error}`,
+		})
+	}
+}
+
+// Sync hour/minute and remove off-schedule attendances for future REAL attendances
+async function syncFutureAttendancesSchedule(
+	classId: string,
+	newStartTime?: { hour: number; minute: number },
+	allowedWeekDays?: string[],
+) {
+	try {
+		const today = new Date()
+		today.setHours(0, 0, 0, 0)
+
+		const futureAttendances = await StudentAttendance.find({
+			karateClass: new mongoose.Types.ObjectId(classId),
+			status: 'active',
+			'date.year': { $gte: today.getFullYear() },
+			'date.month': { $gte: today.getMonth() + 1 },
+			'date.day': { $gte: today.getDate() },
+		}).exec()
+
+		let updatedCount = 0
+		let deletedCount = 0
+
+		for (const attendance of futureAttendances) {
+			if (!attendance || !attendance.date) continue
+
+			const attendanceDate = new Date(
+				attendance.date.year,
+				(attendance.date.month || 1) - 1,
+				attendance.date.day || 1,
+			)
+
+			// Remove attendances for dates not in the new weekDays (if provided)
+			if (allowedWeekDays && allowedWeekDays.length > 0) {
+				const weekDay = getNameOfWeekDayByDay(attendanceDate)
+				if (!allowedWeekDays.includes(weekDay)) {
+					await StudentAttendance.deleteOne({ _id: attendance._id })
+					deletedCount++
+					continue
+				}
+			}
+
+			// Update hour/minute to the new startTime (if provided)
+			if (
+				newStartTime &&
+				(attendance.date.hour !== newStartTime.hour || attendance.date.minute !== newStartTime.minute)
+			) {
+				attendance.date.hour = newStartTime.hour
+				attendance.date.minute = newStartTime.minute
+				await studentAttendanceRepository.saveStudentAttendance(attendance)
+				updatedCount++
+			}
+		}
+
+		// Also update RecoveryClass hour/minute for future records of this class
+		if (newStartTime) {
+			await RecoveryClass.updateMany(
+				{
+					karateClass: new mongoose.Types.ObjectId(classId),
+					status: 'active',
+					'date.year': { $gte: today.getFullYear() },
+					'date.month': { $gte: today.getMonth() + 1 },
+					'date.day': { $gte: today.getDate() },
+				},
+				{ $set: { 'date.hour': newStartTime.hour, 'date.minute': newStartTime.minute } },
+			)
+		}
+
+		if (updatedCount > 0 || deletedCount > 0) {
+			logger.log({
+				level: 'info',
+				message: `Schedule sync for class ${classId}: updated ${updatedCount} future attendances time, deleted ${deletedCount} off-schedule attendances.`,
+			})
+		}
+	} catch (error) {
+		logger.log({
+			level: 'error',
+			message: `Failed to sync schedule for future attendances for class ${classId}: ${error}`,
 		})
 	}
 }
