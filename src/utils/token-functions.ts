@@ -30,15 +30,14 @@ export const validateToken: (token?: string) => { error?: string } | string | Jw
 	}
 }
 
-export const generateToken = (user: ITokenData, time: string = defaultTime) => {
+// Ahora el token generado NO tiene expiración
+export const generateToken = (user: ITokenData) => {
 	if (!secret) {
 		return { error: 'Not Authorized, no secret provided' }
 	}
 
 	try {
-		const token = jwt.sign(user, secret, {
-			expiresIn: time,
-		})
+		const token = jwt.sign(user, secret)
 		return token
 	} catch (error) {
 		return { error: error?.message || 'Generate token failed' }
