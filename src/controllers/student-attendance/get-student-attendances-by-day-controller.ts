@@ -34,6 +34,9 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 		validDay,
 	)
 
+	// Flag para saber si se sincronizó algún attendance real
+	let didSyncAnyAttendance = false
+
 	if (selectedDay < today && !savedStudentAttendance?.length) {
 		res.status(NOT_FOUND)
 		throw new Error('No attendance found.')
@@ -41,6 +44,8 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 
 	// Generate virtual attendances for missing classes
 	let virtualAttendances: any[] = []
+	console.log('selectedDay', selectedDay)
+	console.log('today', today)
 	if (selectedDay >= today) {
 		const weekDay = getNameOfWeekDayByDay(selectedDay)
 
@@ -59,16 +64,69 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 					String(attendance?.karateClass?._id) === String(karateClass?._id),
 			)
 
-			if (existsAttendance) {
-				continue
-			}
-
-			// Find recovery students for this specific class and day
 			const recoveryStudentsOnDate = await recoveryClassRepository.findRecoveryClassByDetails(
 				undefined,
 				karateClass._id.toString(),
 				{ year: validYear, month: validMonth, day: validDay, hour, minute },
 			)
+
+
+			if (existsAttendance) {
+				// Si existe attendance REAL para esta clase/horario, aseguramos que incluya los estudiantes de recuperación del día
+				try {
+					const realAttendanceDoc = await studentAttendanceRepository.findStudentAttendanceById(
+						String(existsAttendance._id),
+					)
+
+					if (existsAttendance) {
+						let wasModified = false
+						for (const rc of recoveryStudentsOnDate) {
+							const rcStudentId =
+								(rc?.student as any)?. _id?.toString?.() || (rc?.student as any)?.toString?.() || ''
+
+							if (!rcStudentId) continue
+
+							const existingItem = realAttendanceDoc.attendance?.find(
+								(item: any) => String(item.student) === rcStudentId,
+							)
+
+							if (!existingItem) {
+								realAttendanceDoc.attendance.push({
+									student: rcStudentId as any,
+									attendanceStatus: 'absent' as any,
+									isDayOnly: false,
+									isRecovery: true,
+									recoveryClassId: (rc as any)?._id as any,
+								})
+								wasModified = true
+							} else {
+								let changed = false
+								if (!existingItem.isRecovery) {
+									existingItem.isRecovery = true
+									changed = true
+								}
+								if (!existingItem.recoveryClassId && (rc as any)?._id) {
+									existingItem.recoveryClassId = (rc as any)?._id as any
+									changed = true
+								}
+								wasModified = wasModified || changed
+							}
+						}
+
+						if (wasModified) {
+							await studentAttendanceRepository.saveStudentAttendance(realAttendanceDoc)
+							didSyncAnyAttendance = true
+						}
+					}
+				} catch (error) {
+					// No interrumpir el flujo si falla la sincronización
+				}
+
+				// Como ya existe un attendance real, no generamos virtual para esta clase
+				continue
+			}
+			// Find recovery students for this specific class and day
+			
 
 			// Combine regular and recovery students
 			const regularStudents = karateClass?.students?.map((student) => ({
@@ -106,6 +164,18 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 
 			virtualAttendances.push(virtualAttendance)
 		}
+	}
+
+	// Si se sincronizó algún attendance, refrescamos la consulta para devolver datos actualizados
+	if (didSyncAnyAttendance) {
+		// eslint-disable-next-line no-var
+		var refreshed = await studentAttendanceRepository.findStudentAttendanceByDay(
+			validYear,
+			validMonth,
+			validDay,
+		)
+		savedStudentAttendance.length = 0
+		savedStudentAttendance.push(...refreshed)
 	}
 
 	// Add isVirtual flag to real attendances for consistency
