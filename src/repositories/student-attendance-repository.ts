@@ -4,10 +4,16 @@ import { format } from 'date-fns'
 import mongoose, { HydratedDocument } from 'mongoose'
 import { StudentAttendance, IStudentAttendance, IStudentAttendanceDocument } from '../models/StudentAttendance'
 import * as karateClassRepository from './karate-class-repository'
+import { BadRequest } from '../errors/bad-request'
 const { ObjectId } = mongoose.Types
 
 export async function createStudentAttendance(studentAttendance: IStudentAttendanceDocument) {
-	return StudentAttendance.create(studentAttendance)
+    const { karateClass, date }: any = studentAttendance
+    const existing = await findRealAttendanceByDateAndClass(karateClass as any, date)
+    if (existing) {
+        throw new BadRequest('Attendance for this class and datetime already exists. Please refresh the page attendance.')
+    }
+    return StudentAttendance.create(studentAttendance)
 }
 
 export async function findStudentAttendances() {
