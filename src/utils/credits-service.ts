@@ -119,12 +119,8 @@ export async function getAvailableCreditsForStudent(studentId: string) {
 	// Ajustes manuales (no cuentan para el tope)
 	const adjustment = user?.recoveryCreditsAdjustment || 0
 
-	// Si hay más bookings que ausencias, el excedente consume el ajuste manual
-	const extraBookingsBeyondAbsences = Math.max(0, bookedCount - absencesCount)
-	const adjustmentRemaining = Math.max(0, adjustment - extraBookingsBeyondAbsences)
-
-	// Créditos disponibles totales = créditos por ausencias disponibles + ajuste restante
-	const availableCredits = Math.max(0, absenceCreditsAvailable + adjustmentRemaining)
+	// Créditos disponibles totales = créditos por ausencias disponibles + ajustes
+	const availableCredits = Math.max(0, absenceCreditsAvailable + adjustment)
 
 	return {
 		plan,
@@ -132,7 +128,7 @@ export async function getAvailableCreditsForStudent(studentId: string) {
 		creditsFromAbsences: absenceCreditsAvailable,
 		adjustment,
 		bookedCount,
-		poolCredits: absenceCreditsAvailable + adjustmentRemaining,
+		poolCredits: absenceCreditsAvailable + adjustment,
 		totalCredits: availableCredits, // mantener nombre usado por el front
 		isFrozen,
 	}

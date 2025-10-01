@@ -67,7 +67,7 @@ async function main() {
 			bulkUpdates.push({
 				updateOne: {
 					filter: { _id: student._id },
-					update: { $set: { enrollmentPlan: newPlan } },
+					update: { $set: { enrollmentPlan: 'Advanced' } },
 				},
 			})
 			updatedCount += 1
@@ -85,7 +85,7 @@ async function main() {
 		for (const update of bulkUpdates) {
 			const studentId = update.updateOne.filter._id
 			try {
-				await enforceOverflowAfterPlanDowngrade(studentId, planFromWeeklyCount(weeklyMap.get(String(studentId)) || 0))
+				await enforceOverflowAfterPlanDowngrade(studentId, 'Advanced')
 				overflowAppliedCount += 1
 			} catch (error) {
 				overflowErrors.push({
