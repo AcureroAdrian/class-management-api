@@ -8,4 +8,8 @@ export type TStatus = 'active' | 'inactive' | 'deleted'
 
 export type TAttendanceStatus = 'present' | 'absent' | 'late' | 'good-behavior' | 'bad-behavior' | 'sick'
 
+export type TEnrollmentPlan = 'Basic' | 'Optimum' | 'Plus' | 'Advanced'
+
+export type TOverflowReason = 'plan-cap' | 'plan-downgrade'
+
 export type TLocation = 'spring' | 'katy'

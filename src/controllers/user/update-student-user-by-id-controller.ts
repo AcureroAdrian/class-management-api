@@ -9,13 +9,14 @@ import { mongoIdValidator, verifyEmail } from '../../utils/validators/input-vali
 import { shortLevels } from '../../utils/short-values'
 import { TUserLevel } from '../../utils/common-types'
 import { logger } from '../../logger'
+import { enforceOverflowAfterPlanDowngrade } from '../../utils/credits-service'
 
 // @desc    Update student user by id
 // @route   PATCH /api/users/:id
 // @access  Admin
 export const updateStudentuserById = asyncHandler(async (req: IRequest, res: Response) => {
 	const data = req.body
-	const { userId, name, lastName, dateOfBirth, level, email, phone, avatar } = data
+	const { userId, name, lastName, dateOfBirth, level, email, phone, avatar, enrollmentPlan } = data
 	const { id: studentId } = req.params
 
 	if (!mongoIdValidator(studentId)) {
@@ -70,6 +71,10 @@ export const updateStudentuserById = asyncHandler(async (req: IRequest, res: Res
 		res.status(BAD_REQUEST)
 		throw new Error('Invalid phone.')
 	}
+	if (enrollmentPlan && !['Basic', 'Optimum', 'Plus', 'Advanced'].includes(enrollmentPlan)) {
+		res.status(BAD_REQUEST)
+		throw new Error('Invalid enrollment plan.')
+	}
 
 	const existsEmail = email && (await userRepository.findUserByEmail(email))
 
@@ -96,6 +101,15 @@ export const updateStudentuserById = asyncHandler(async (req: IRequest, res: Res
 	if (!updatedStudent) {
 		res.status(INTERNAL_SERVER_ERROR)
 		throw new Error('Failed to update student.')
+	}
+
+	// Si cambia el plan de enrollment, recalcular overflow para mantener el tope (no convierte overflow en contables)
+	if (typeof enrollmentPlan === 'string') {
+		try {
+			await enforceOverflowAfterPlanDowngrade(studentId, enrollmentPlan as any)
+		} catch (e) {
+			logger.log({ level: 'error', message: 'Failed to enforce overflow after plan change', error: e })
+		}
 	}
 
 	logger.log({

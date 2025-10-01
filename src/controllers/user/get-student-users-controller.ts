@@ -5,6 +5,7 @@ import { Response } from 'express'
 import { IRequest } from '../../middleware/auth-middleware'
 import * as userRepository from '../../repositories/user-repository'
 import * as studentAttendanceRepository from '../../repositories/student-attendance-repository'
+import { getAvailableCreditsForStudent } from '../../utils/credits-service'
 import { NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 
 // @desc    Get all student users
@@ -22,11 +23,10 @@ export const getStudentUsers = asyncHandler(async (req: IRequest, res: Response)
 
 	const studentsWithRecoveryCredits = await Promise.all(
 		students.map(async (student) => {
-			const absents = await studentAttendanceRepository.findAbsentsByStudentId(student._id.toString(), { onlyUnbooked: true })
-			const recoveryCredits = (absents?.length || 0) + (student.recoveryCreditsAdjustment || 0)
+			const info = await getAvailableCreditsForStudent(student._id.toString())
 			return {
 				...student,
-				recoveryCredits,
+				recoveryCredits: info.totalCredits,
 			}
 		}),
 	)

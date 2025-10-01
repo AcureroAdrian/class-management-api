@@ -5,6 +5,7 @@ import { Response } from 'express'
 import { IRequest } from '../../middleware/auth-middleware'
 import * as userRepository from '../../repositories/user-repository'
 import * as studentAttendanceRepository from '../../repositories/student-attendance-repository'
+import { getAvailableCreditsForStudent } from '../../utils/credits-service'
 import { BAD_REQUEST, INTERNAL_SERVER_ERROR, NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 import { mongoIdValidator } from '../../utils/validators/input-validator'
 import { logger } from '../../logger'
@@ -34,10 +35,8 @@ export const adjustRecoveryCredits = asyncHandler(async (req: IRequest, res: Res
 	}
 
 	if (adjustment === -1) {
-		const absents = await studentAttendanceRepository.findAbsentsByStudentId(studentId, { onlyUnbooked: true })
-		const totalRecoveryCredits = (absents?.length || 0) + (student.recoveryCreditsAdjustment || 0)
-
-		if (totalRecoveryCredits <= 0) {
+		const info = await getAvailableCreditsForStudent(studentId)
+		if (info.totalCredits <= 0) {
 			res.status(BAD_REQUEST)
 			throw new Error('Student has no recovery credits to remove.')
 		}
@@ -57,12 +56,11 @@ export const adjustRecoveryCredits = asyncHandler(async (req: IRequest, res: Res
 		message: `Recovery credits for student ${student.name} ${student.lastName} adjusted by ${adjustment}. New adjustment value: ${updatedStudent.recoveryCreditsAdjustment}`,
 	})
 
-	const absents = await studentAttendanceRepository.findAbsentsByStudentId(studentId, { onlyUnbooked: true })
-	const totalRecoveryCredits = (absents?.length || 0) + (updatedStudent.recoveryCreditsAdjustment || 0)
+	const info = await getAvailableCreditsForStudent(studentId)
 
 	const studentData = {
 		...updatedStudent.toObject(),
-		totalRecoveryCredits,
+		totalRecoveryCredits: info.totalCredits,
 	}
 
 	res.status(OK).json(studentData)

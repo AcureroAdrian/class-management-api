@@ -12,7 +12,7 @@ import { logger } from '../../logger'
 // @route   POST /api/users/
 // @access  Admin
 export const registerStudentUsers = asyncHandler(async (req: IRequest, res: Response) => {
-	const { userId, name, lastName, dateOfBirth, level, phone, email, notes, isTeacher, isAdmin } = req.body
+	const { userId, name, lastName, dateOfBirth, level, phone, email, notes, isTeacher, isAdmin, enrollmentPlan } = req.body
 
 	if (!userId?.length) {
 		res.status(BAD_REQUEST)
@@ -49,6 +49,11 @@ export const registerStudentUsers = asyncHandler(async (req: IRequest, res: Resp
 		throw new Error('User already exists.')
 	}
 
+	if (enrollmentPlan && !['Basic', 'Optimum', 'Plus', 'Advanced'].includes(enrollmentPlan)) {
+		res.status(BAD_REQUEST)
+		throw new Error('Invalid enrollment plan.')
+	}
+
 	const newStudent = await userRepository.createUser({
 		userId,
 		name,
@@ -60,7 +65,8 @@ export const registerStudentUsers = asyncHandler(async (req: IRequest, res: Resp
 		notes,
 		isTeacher,
 		isAdmin,
-	})
+		enrollmentPlan,
+	} as any)
 
 	if (!newStudent) {
 		res.status(INTERNAL_SERVER_ERROR)

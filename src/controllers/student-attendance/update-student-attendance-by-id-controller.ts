@@ -6,6 +6,12 @@ import { IRequest } from '../../middleware/auth-middleware'
 import * as studentAttendanceRepository from '../../repositories/student-attendance-repository'
 import { BAD_REQUEST, INTERNAL_SERVER_ERROR, NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 import { mongoIdValidator } from '../../utils/validators/input-validator'
+import {
+	getAbsenceAndBookingSnapshot,
+	getMaxPendingForPlan,
+	shouldOverflowNewAbsence,
+} from '../../utils/credits-service'
+import * as userRepository from '../../repositories/user-repository'
 
 // @desc    PATCH update student attendance by id
 // @route   PATCH /api/student-attendances/:id
@@ -31,7 +37,52 @@ export const updateStudentAttendanceById = asyncHandler(async (req: IRequest, re
 		throw new Error('Attendance not found.')
 	}
 
-	studentAttendance.attendance = attendance
+	// Construir nueva lista de asistencia aplicando lógica de overflow por alumno
+	const existingAttendance = studentAttendance.attendance || []
+	const existingByStudent = new Map<string, any>(existingAttendance.map((a: any) => [a.student.toString(), a]))
+
+	const updatedAttendance = [] as any[]
+
+	for (const item of attendance) {
+		const studentId = String(item.student)
+		const prev = existingByStudent.get(studentId)
+
+		let isOverflowAbsence = Boolean(prev?.isOverflowAbsence)
+		let overflowReason = prev?.overflowReason
+
+		if ((item.attendanceStatus === 'absent' || item.attendanceStatus === 'sick') && !item.isDayOnly && !item.isRecovery) {
+			const user = await userRepository.findUserById(studentId)
+			const planMax = getMaxPendingForPlan((user?.enrollmentPlan as any) || 'Optimum')
+
+			// Obtener snapshot de ausencias y bookings activos
+			const pendingAbsences =
+				user?.isTrial || user?.status !== 'active'
+					? 0
+					: (
+						await getAbsenceAndBookingSnapshot(studentId)
+					).pendingAbsences
+
+			// Decidir si esta nueva ausencia debería overflow considerando ausencias ya recuperadas
+			if (shouldOverflowNewAbsence(pendingAbsences, planMax)) {
+				isOverflowAbsence = true
+				overflowReason = overflowReason || 'plan-cap'
+			} else {
+				overflowReason = undefined
+			}
+		}
+
+		updatedAttendance.push({
+			...item,
+			isOverflowAbsence:
+				item.attendanceStatus === 'absent' || item.attendanceStatus === 'sick' ? Boolean(isOverflowAbsence) : false,
+			overflowReason:
+				item.attendanceStatus === 'absent' || item.attendanceStatus === 'sick'
+					? overflowReason
+					: undefined,
+		})
+	}
+
+	studentAttendance.attendance = updatedAttendance
 
 	const savedAttendance = await studentAttendanceRepository.saveStudentAttendance(studentAttendance)
 

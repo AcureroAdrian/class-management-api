@@ -56,14 +56,6 @@ export const deleteRecoveryClassById = asyncHandler(async (req: IRequest, res: R
 		throw new Error('Error deleting recovery class.')
 	}
 
-	// Refund credit if it was a manual credit
-	if (!recoveryClass.attendance) {
-		const student = await userRepository.findUserById(String(recoveryClass.student))
-		if (student) {
-			student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) + 1
-			await userRepository.saveUser(student)
-		}
-	}
 
 	// Try to sync with real attendance if it exists
 	try {

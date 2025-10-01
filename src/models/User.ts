@@ -1,7 +1,7 @@
 'use strict'
 
 import { Document, Model, Schema, model } from 'mongoose'
-import { TStatus, TUserLevel } from '../utils/common-types'
+import { TStatus, TUserLevel, TEnrollmentPlan } from '../utils/common-types'
 
 export interface IUser extends Document {
 	userId: string
@@ -12,6 +12,7 @@ export interface IUser extends Document {
 		month: number
 		day: number
 	}
+	enrollmentPlan?: TEnrollmentPlan
 	email?: string
 	phone?: string
 	notes?: string
@@ -69,6 +70,11 @@ const userSchema = new Schema<IUser>(
 			day: {
 				type: Number,
 			},
+		},
+		enrollmentPlan: {
+			type: String,
+			enum: ['Basic', 'Optimum', 'Plus', 'Advanced'],
+			default: 'Basic',
 		},
 		level: {
 			type: String,

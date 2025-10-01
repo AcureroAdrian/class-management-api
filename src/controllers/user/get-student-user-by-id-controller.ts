@@ -5,6 +5,7 @@ import { Response } from 'express'
 import { IRequest } from '../../middleware/auth-middleware'
 import * as userRepository from '../../repositories/user-repository'
 import * as studentAttendanceRepository from '../../repositories/student-attendance-repository'
+import { getAvailableCreditsForStudent } from '../../utils/credits-service'
 import { BAD_REQUEST, NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 import { mongoIdValidator } from '../../utils/validators/input-validator'
 
@@ -26,12 +27,11 @@ export const getStudentUserById = asyncHandler(async (req: IRequest, res: Respon
 		throw new Error('Student not found.')
 	}
 
-	const absents = await studentAttendanceRepository.findAbsentsByStudentId(id, { onlyUnbooked: true })
-	const totalRecoveryCredits = (absents?.length || 0) + (student.recoveryCreditsAdjustment || 0)
+	const creditsInfo = await getAvailableCreditsForStudent(id)
 
 	const studentData = {
 		...student.toObject(),
-		totalRecoveryCredits,
+		totalRecoveryCredits: creditsInfo.totalCredits,
 	}
 
 	res.status(OK).json(studentData)

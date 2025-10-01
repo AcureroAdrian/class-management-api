@@ -1,5 +1,6 @@
 'use strict'
 
+import 'colors'
 import mongoose, { ConnectOptions } from 'mongoose'
 
 const connectDB = async () => {
