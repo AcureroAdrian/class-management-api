@@ -1,7 +1,7 @@
 'use strict'
 
 import { Document, Model, ObjectId, Schema, model } from 'mongoose'
-import { TAttendanceStatus, TStatus } from '../utils/common-types'
+import { TAttendanceStatus, TStatus, TOverflowReason } from '../utils/common-types'
 
 export interface IAttendance {
 	student: ObjectId
@@ -10,6 +10,8 @@ export interface IAttendance {
 	isDayOnly?: boolean
 	isRecovery?: boolean
 	recoveryClassId?: ObjectId
+	isOverflowAbsence?: boolean
+	overflowReason?: TOverflowReason
 }
 
 export interface IStudentAttendance extends Document {
@@ -83,6 +85,15 @@ const studentAttendanceSchema = new Schema<IStudentAttendance>(
 					type: Schema.Types.ObjectId,
 					ref: 'RecoveryClass',
 				},
+				isOverflowAbsence: {
+					type: Boolean,
+					default: false,
+				},
+			overflowReason: {
+				type: String,
+				enum: ['plan-cap', 'plan-downgrade'],
+				default: undefined,
+			},
 			},
 		],
 		status: {

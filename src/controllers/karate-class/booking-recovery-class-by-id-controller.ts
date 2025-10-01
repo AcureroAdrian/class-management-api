@@ -11,6 +11,7 @@ import { BAD_REQUEST, INTERNAL_SERVER_ERROR, OK } from '../../utils/http-server-
 import { mongoIdValidator } from '../../utils/validators/input-validator'
 import { Types } from 'mongoose'
 import { locationCapacityLimits } from '../../utils/short-values'
+import { getAvailableCreditsForStudent } from '../../utils/credits-service'
 
 // @desc    Booking recovery karate class by id
 // @route   PUT /api/karate-classes/recovery-class/:id
@@ -33,29 +34,30 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 		throw new Error('Invalid absence.')
 	}
 
-	let finalAttendanceId = attendanceId
-
-	// If no specific absence is provided, find one automatically
-	if (!finalAttendanceId) {
-		const student = await userRepository.findUserById(studentId)
-		if (!student) {
-			res.status(BAD_REQUEST)
-			throw new Error('Student not found.')
-		}
-
-		const unbookedAbsences = await studentAttendanceRepository.findAbsentsByStudentId(studentId, { onlyUnbooked: true })
-
-		if (unbookedAbsences.length > 0) {
-			// Use the oldest unbooked absence
-			finalAttendanceId = unbookedAbsences[0]._id.toString()
-		} else {
-			// No unbooked absences, check for general adjustment credits
-			if ((student.recoveryCreditsAdjustment || 0) <= 0) {
-				res.status(BAD_REQUEST)
-				throw new Error('Student has no recovery credits.')
-			}
-		}
+	// Validar que el estudiante existe
+	const student = await userRepository.findUserById(studentId)
+	if (!student) {
+		res.status(BAD_REQUEST)
+		throw new Error('Student not found.')
 	}
+
+	// Obtener información de créditos disponibles
+	const creditsInfo = await getAvailableCreditsForStudent(studentId)
+
+	// Congelado: inactivo o sin plan -> no puede reservar
+	if (creditsInfo.isFrozen) {
+		res.status(BAD_REQUEST)
+		throw new Error('Student account is frozen. Cannot book recovery classes.')
+	}
+
+	// Validar que tiene créditos disponibles
+	if (creditsInfo.totalCredits <= 0) {
+		res.status(BAD_REQUEST)
+		throw new Error('Student has no recovery credits.')
+	}
+
+	// attendanceId es opcional - si se proporciona, se vincula; si no, se reserva sin vínculo
+	let finalAttendanceId = attendanceId
 
 	const karateClass = await karateClassRepository.findKarateClassById(id)
 
@@ -111,14 +113,8 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 		throw new Error('Error creating recovery class.')
 	}
 
-	if (!finalAttendanceId) {
-		// This means an adjustment credit was used
-		const student = await userRepository.findUserById(studentId)
-		if (student) {
-			student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) - 1
-			await userRepository.saveUser(student)
-		}
-	}
+	// Ya no necesitamos decrementar el ajuste manual aquí
+	// El consumo se refleja automáticamente en el conteo de bookings activos
 
 	recoveryClasses.push(recoveryClass._id as any)
 	karateClass.recoveryClasses = recoveryClasses

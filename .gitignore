@@ -133,3 +133,4 @@ data
 /src/clean-seeder.ts
 /src/excel-seeder.ts
 *.xlsx
+*.gz

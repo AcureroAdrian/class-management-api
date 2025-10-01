@@ -12,7 +12,9 @@
     "start": "node dist/server.js",
     "test": "jest",
     "fix-lint": "./node_modules/eslint/bin/eslint.js  src --ext .ts --fix",
-    "script": "ts-node src/seeder.ts"
+    "script": "ts-node src/seeder.ts",
+    "synthetic-absent": "ts-node src/synthetic-mark-student-absent.ts",
+    "set-plans-advanced": "ts-node src/tasks/set-all-students-plan-advanced.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

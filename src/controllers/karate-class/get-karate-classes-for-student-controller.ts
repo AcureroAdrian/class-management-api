@@ -89,7 +89,6 @@ export const getKarateClassesForStudent = asyncHandler(async (req: IRequest, res
 		recoveryCreditsAdjustment: student.recoveryCreditsAdjustment || 0,
 	}
 
-	console.log(response.absents, 'absents', response.recoveryCreditsAdjustment, 'recoveryCreditsAdjustment')
 
 	res.status(OK).json(response)
 })

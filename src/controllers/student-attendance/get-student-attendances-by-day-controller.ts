@@ -44,8 +44,6 @@ export const getStudentAttendancesByDay = asyncHandler(async (req: IRequest, res
 
 	// Generate virtual attendances for missing classes
 	let virtualAttendances: any[] = []
-	console.log('selectedDay', selectedDay)
-	console.log('today', today)
 	if (selectedDay >= today) {
 		const weekDay = getNameOfWeekDayByDay(selectedDay)
 

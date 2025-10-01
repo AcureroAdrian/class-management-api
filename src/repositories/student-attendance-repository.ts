@@ -3,7 +3,9 @@
 import { format } from 'date-fns'
 import mongoose, { HydratedDocument } from 'mongoose'
 import { StudentAttendance, IStudentAttendance, IStudentAttendanceDocument } from '../models/StudentAttendance'
+import { BadRequest } from '../errors/bad-request'
 import * as karateClassRepository from './karate-class-repository'
+import { getCurrentDateInHouston } from '../utils/houston-timezone'
 const { ObjectId } = mongoose.Types
 
 export async function createStudentAttendance(studentAttendance: IStudentAttendanceDocument) {
@@ -310,6 +312,8 @@ export async function findStudentAttendanceByDatesAndStudentId(
 				observations: '$attendance.observations',
 				isDayOnly: '$attendance.isDayOnly',
 				isRecovery: '$attendance.isRecovery',
+				isOverflowAbsence: '$attendance.isOverflowAbsence',
+				overflowReason: '$attendance.overflowReason',
 			},
 		},
 	])
@@ -423,6 +427,8 @@ export async function findStudentAttendanceByDay(year: number, month: number, da
 								in: '$$matchedRecovery._id',
 							},
 						},
+						isOverflowAbsence: '$attendance.isOverflowAbsence',
+						overflowReason: '$attendance.overflowReason',
 					},
 				},
 			},
@@ -442,7 +448,8 @@ export async function findStudentAttendanceByDay(year: number, month: number, da
 
 export async function findAbsentsByStudentId(studentId: string, options: { onlyUnbooked?: boolean } = {}) {
 	const { onlyUnbooked = false } = options
-	const [year, month, day] = format(new Date(), 'yyyy-MM-dd').split('-')
+	const houstonNow = getCurrentDateInHouston()
+	const [year, month, day] = format(houstonNow, 'yyyy-MM-dd').split('-')
 	const pipeline: any[] = [
 		{
 			$addFields: {
@@ -465,44 +472,30 @@ export async function findAbsentsByStudentId(studentId: string, options: { onlyU
 		{
 			$match: {
 				$expr: {
-					$and: [
-						{
-							$eq: ['$date.year', Number(year)],
-						},
-						{
-							$lt: ['$attendanceDate', '$today'],
-						},
-					],
+					$and: [{ $eq: ['$date.year', Number(year)] }, { $lt: ['$attendanceDate', '$today'] }],
 				},
 			},
 		},
-		{
-			$unwind: '$attendance',
-		},
+		{ $unwind: '$attendance' },
 		{
 			$match: {
 				'attendance.student': new ObjectId(studentId),
-				'attendance.attendanceStatus': 'absent', // REVISAR
+				'attendance.attendanceStatus': 'absent',
 				'attendance.isDayOnly': { $ne: true },
 				'attendance.isRecovery': { $ne: true },
+				'attendance.isOverflowAbsence': { $ne: true },
 			},
 		},
 		{
 			$lookup: {
 				from: 'recoveryclasses',
-				let: {
-					studentId: { $toString: '$attendance.student' },
-					attendanceId: '$_id',
-				},
+				let: { studentId: { $toString: '$attendance.student' }, attendanceId: '$_id' },
 				pipeline: [
 					{
 						$match: {
 							status: 'active',
 							$expr: {
-								$and: [
-									{ $eq: ['$attendance', '$$attendanceId'] },
-									{ $eq: [{ $toString: '$student' }, '$$studentId'] },
-								],
+								$and: [{ $eq: ['$attendance', '$$attendanceId'] }, { $eq: [{ $toString: '$student' }, '$$studentId'] }],
 							},
 						},
 					},
@@ -512,20 +505,10 @@ export async function findAbsentsByStudentId(studentId: string, options: { onlyU
 				as: 'recoveryClass',
 			},
 		},
-		{
-			$unwind: {
-				path: '$recoveryClass',
-				preserveNullAndEmptyArrays: true,
-			},
-		},
-		{
-			$sort: {
-				attendanceDate: 1,
-			},
-		},
+		{ $unwind: { path: '$recoveryClass', preserveNullAndEmptyArrays: true } },
+		{ $sort: { attendanceDate: 1 } },
 	]
 
-	// Opcional: devolver solo ausencias no reservadas
 	if (onlyUnbooked) {
 		pipeline.push({ $match: { recoveryClass: null } })
 	}

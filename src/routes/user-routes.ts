@@ -10,6 +10,7 @@ import {
 	registerTrialStudent,
 	updateStudentuserById,
 	adjustRecoveryCredits,
+	getStudentCredits,
 } from '../controllers/user'
 
 const router = Router()
@@ -23,5 +24,6 @@ router
 	.post(protect, forUserAdmin, deleteStudentUserById)
 router.route('/:id/cancel-deletion').patch(protect, forUserAdmin, cancelScheduledDeletion)
 router.route('/:id/adjust-credits').post(protect, forUserAdmin, adjustRecoveryCredits)
+router.route('/:id/credits').get(protect, getStudentCredits)
 
 export default router
