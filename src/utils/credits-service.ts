@@ -108,29 +108,31 @@ export async function getAvailableCreditsForStudent(studentId: string) {
 
 	// Si no está activo o es trial, no genera por ausencias
 	const isFrozen = user?.status !== 'active' || !plan
-	const { absencesCount, bookedCount } =
-		isFrozen || user?.isTrial ? { absencesCount: 0, bookedCount: 0 } : await getAbsenceAndBookingSnapshot(studentId)
+	const { pendingAbsences, bookedCount, absencesCount } =
+		isFrozen || user?.isTrial
+			? { pendingAbsences: 0, bookedCount: 0, absencesCount: 0 }
+			: await getAbsenceAndBookingSnapshot(studentId)
 
-	// Créditos por ausencias con regla 1:1 y tope del plan
-	const rawAbsenceCredits = computeCreditsFromAbsences(absencesCount)
-	const absenceCreditsCapped = Math.min(rawAbsenceCredits, maxPending)
+	// Créditos por ausencias disponibles = min(ausencias pendientes, tope del plan)
+	const absenceCreditsAvailable = Math.min(pendingAbsences, maxPending)
 
 	// Ajustes manuales (no cuentan para el tope)
 	const adjustment = user?.recoveryCreditsAdjustment || 0
 
-	// Pool total = créditos de ausencias (cap) + ajuste manual
-	const poolCredits = absenceCreditsCapped + adjustment
+	// Si hay más bookings que ausencias, el excedente consume el ajuste manual
+	const extraBookingsBeyondAbsences = Math.max(0, bookedCount - absencesCount)
+	const adjustmentRemaining = Math.max(0, adjustment - extraBookingsBeyondAbsences)
 
-	// Créditos disponibles = pool - bookings activos
-	const availableCredits = Math.max(0, poolCredits - bookedCount)
+	// Créditos disponibles totales = créditos por ausencias disponibles + ajuste restante
+	const availableCredits = Math.max(0, absenceCreditsAvailable + adjustmentRemaining)
 
 	return {
 		plan,
 		maxPending,
-		creditsFromAbsences: absenceCreditsCapped,
+		creditsFromAbsences: absenceCreditsAvailable,
 		adjustment,
 		bookedCount,
-		poolCredits,
+		poolCredits: absenceCreditsAvailable + adjustmentRemaining,
 		totalCredits: availableCredits, // mantener nombre usado por el front
 		isFrozen,
 	}
