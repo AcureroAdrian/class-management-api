@@ -9,7 +9,12 @@ import { getCurrentDateInHouston } from '../utils/houston-timezone'
 const { ObjectId } = mongoose.Types
 
 export async function createStudentAttendance(studentAttendance: IStudentAttendanceDocument) {
-	return StudentAttendance.create(studentAttendance)
+    const { karateClass, date }: any = studentAttendance
+    const existing = await findRealAttendanceByDateAndClass(karateClass as any, date)
+    if (existing) {
+        throw new BadRequest('Attendance for this class and datetime already exists. Please refresh the page attendance.')
+    }
+    return StudentAttendance.create(studentAttendance)
 }
 
 export async function findStudentAttendances() {
@@ -341,12 +346,24 @@ export async function findStudentAttendanceByDay(year: number, month: number, da
 		{
 			$lookup: {
 				from: 'recoveryclasses',
-				let: { classId: '$karateClass._id' },
+				let: {
+					classId: '$karateClass._id',
+					year: '$date.year',
+					month: '$date.month',
+					day: '$date.day',
+				},
 				pipeline: [
 					{
 						$match: {
 							status: 'active',
-							$expr: { $eq: ['$karateClass', '$$classId'] },
+							$expr: {
+								$and: [
+									{ $eq: ['$karateClass', '$$classId'] },
+									{ $eq: ['$date.year', '$$year'] },
+									{ $eq: ['$date.month', '$$month'] },
+									{ $eq: ['$date.day', '$$day'] },
+								],
+							},
 						},
 					},
 				],
