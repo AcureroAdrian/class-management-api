@@ -96,10 +96,17 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 	}
 
 	const recoveryClasses = karateClass.recoveryClasses || []
+
+	// Consumir primero crédito por ajuste si hay disponible
+	const adjustmentTotal = student.recoveryCreditsAdjustment || 0
+	const adjustmentUsed = student.usedRecoveryAdjustmentCredits || 0
+	const shouldUseAdjustment = adjustmentTotal - adjustmentUsed > 0
+
 	const recoveryClassPayload: any = {
 		karateClass: id as any,
 		student: studentId,
 		date,
+		usedAdjustment: shouldUseAdjustment,
 	}
 
 	if (finalAttendanceId) {
@@ -107,6 +114,13 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 	}
 
 	const recoveryClass = await recoveryClassRepository.createRecoveryClass(recoveryClassPayload)
+
+	// Si se usó ajuste, incrementar contador de usados en el estudiante
+	if (recoveryClass && shouldUseAdjustment) {
+		student.usedRecoveryAdjustmentCredits = (student.usedRecoveryAdjustmentCredits || 0) + 1
+		student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) - 1
+		await userRepository.saveUser(student)
+	}
 
 	if (!recoveryClass) {
 		res.status(INTERNAL_SERVER_ERROR)

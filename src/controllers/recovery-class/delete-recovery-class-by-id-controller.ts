@@ -70,5 +70,19 @@ export const deleteRecoveryClassById = asyncHandler(async (req: IRequest, res: R
 		// Don't fail the deletion if sync fails
 	}
 
+	// Si esta reserva consumió ajuste, reembolsar decrementando usedRecoveryAdjustmentCredits
+	try {
+		if (recoveryClass?.usedAdjustment) {
+			const student = await userRepository.findUserById(recoveryClass.student.toString())
+			if (student) {
+				student.usedRecoveryAdjustmentCredits = Math.max(0, (student.usedRecoveryAdjustmentCredits || 0) - 1)
+				student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) + 1
+				await userRepository.saveUser(student)
+			}
+		}
+	} catch (error) {
+		// No romper flujo por error de reembolso
+	}
+
 	res.status(OK).json({ recoveryClassId: id })
 })

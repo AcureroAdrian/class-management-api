@@ -84,13 +84,28 @@ export async function getActiveBookingsCountForYear(studentId: string): Promise<
 	})
 }
 
-export async function getAbsenceAndBookingSnapshot(studentId: string) {
-	const [absencesCount, bookedCount] = await Promise.all([
-		getCountableAbsencesForYear(studentId),
-		getActiveBookingsCountForYear(studentId),
-	])
+// Cantidad de bookings activos del año actual que consumieron ajuste manual
+export async function getActiveAdjustmentBookingsCountForYear(studentId: string): Promise<number> {
+    const now = getCurrentDateInHouston()
+    const year = now.getFullYear()
 
-	const consumedAbsences = Math.min(absencesCount, bookedCount)
+    return await RecoveryClass.countDocuments({
+        student: new mongoose.Types.ObjectId(studentId),
+        status: 'active',
+        usedAdjustment: true,
+        'date.year': year,
+    })
+}
+
+export async function getAbsenceAndBookingSnapshot(studentId: string) {
+    const [absencesCount, bookedCount, adjustmentBookedCount] = await Promise.all([
+        getCountableAbsencesForYear(studentId),
+        getActiveBookingsCountForYear(studentId),
+        getActiveAdjustmentBookingsCountForYear(studentId),
+    ])
+
+    // Considerar reservas que usaron ajuste como si sumaran a las ausencias contables para el mínimo
+    const consumedAbsences = Math.min(absencesCount + adjustmentBookedCount, bookedCount)
 	const pendingAbsences = Math.max(0, absencesCount - consumedAbsences)
 
 	return {
@@ -98,6 +113,7 @@ export async function getAbsenceAndBookingSnapshot(studentId: string) {
 		bookedCount,
 		consumedAbsences,
 		pendingAbsences,
+		adjustmentBookedCount,
 	}
 }
 
@@ -108,30 +124,38 @@ export async function getAvailableCreditsForStudent(studentId: string) {
 
 	// Si no está activo o es trial, no genera por ausencias
 	const isFrozen = user?.status !== 'active' || !plan
-	const { pendingAbsences, bookedCount, absencesCount } =
+	const { pendingAbsences, bookedCount, absencesCount, consumedAbsences, adjustmentBookedCount } =
 		isFrozen || user?.isTrial
-			? { pendingAbsences: 0, bookedCount: 0, absencesCount: 0 }
+			? { pendingAbsences: 0, bookedCount: 0, absencesCount: 0, consumedAbsences: 0, adjustmentBookedCount: 0 }
 			: await getAbsenceAndBookingSnapshot(studentId)
 
 	// Créditos por ausencias disponibles = min(ausencias pendientes, tope del plan)
-	const absenceCreditsAvailable = Math.min(pendingAbsences, maxPending)
+    const absenceCreditsAvailable = Math.min(pendingAbsences, maxPending)
 
-	// Ajustes manuales (no cuentan para el tope)
-	const adjustment = user?.recoveryCreditsAdjustment || 0
+    // Ajustes manuales: total y usados
+    const adjustmentTotal = user?.recoveryCreditsAdjustment || 0
+    const adjustmentUsed = user?.usedRecoveryAdjustmentCredits || 0
+    const adjustmentNet = adjustmentTotal - adjustmentUsed
 
-	// Créditos disponibles totales = créditos por ausencias disponibles + ajustes
-	const availableCredits = Math.max(0, absenceCreditsAvailable + adjustment)
+    // Créditos disponibles totales = créditos por ausencias disponibles + ajuste neto
+    const availableCredits = Math.max(0, absenceCreditsAvailable + adjustmentNet)
 
 	return {
 		plan,
 		maxPending,
-		creditsFromAbsences: absenceCreditsAvailable,
-		adjustment,
-		bookedCount,
-		poolCredits: absenceCreditsAvailable + adjustment,
-		totalCredits: availableCredits, // mantener nombre usado por el front
-		isFrozen,
-	}
+        creditsFromAbsences: absenceCreditsAvailable,
+        adjustment: adjustmentNet,
+        adjustmentTotal,
+        adjustmentUsed,
+        bookedCount,
+        adjustmentBookedCount,
+        absencesCount,
+        consumedAbsences,
+        pendingAbsences,
+        poolCredits: absenceCreditsAvailable + adjustmentNet,
+        totalCredits: availableCredits, // mantener nombre usado por el front
+        isFrozen,
+    }
 }
 
 // Determina si una nueva ausencia debería marcarse como overflow dados los contadores actuales

@@ -7,6 +7,8 @@ export interface IRecoveryClass extends Document {
 	karateClass: ObjectId
 	student: ObjectId
 	attendance: ObjectId
+	// Indica si este booking consumió 1 crédito por ajuste
+	usedAdjustment?: boolean
 	date: {
 		year: number
 		month: number
@@ -39,6 +41,10 @@ const recoveryClassSchema = new Schema<IRecoveryClass>(
 			type: Schema.Types.ObjectId,
 			ref: 'Attendance',
 			index: true,
+		},
+		usedAdjustment: {
+			type: Boolean,
+			default: false,
 		},
 		date: {
 			year: {
