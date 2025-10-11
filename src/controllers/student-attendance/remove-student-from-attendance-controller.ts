@@ -98,13 +98,17 @@ export const removeStudentFromAttendance = asyncHandler(async (req: IRequest, re
 			await karateClassRepository.saveKarateClass(karateClass)
 		}
 
-		// 2. If the recovery was not tied to a specific absence, refund a credit
-		if (!recoveryClass.attendance) {
-			const student = await userRepository.findUserById(studentId)
-			if (student) {
+		// 2. Refund adjustment if this booking used an adjustment; otherwise, if it wasn't tied to an absence, add +1 adjustment
+		const student = await userRepository.findUserById(studentId)
+		if (student) {
+			if ((recoveryClass as any)?.usedAdjustment) {
+				student.usedRecoveryAdjustmentCredits = Math.max(0, (student.usedRecoveryAdjustmentCredits || 0) - 1)
 				student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) + 1
-				await userRepository.saveUser(student)
+			} else if (!recoveryClass.attendance) {
+				student.usedRecoveryAdjustmentCredits = Math.max(0, (student.usedRecoveryAdjustmentCredits || 0) - 1)
+				student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) + 1
 			}
+			await userRepository.saveUser(student)
 		}
 
 		// 3. Delete the recovery class record

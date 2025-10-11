@@ -12,10 +12,10 @@ import { NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 export const getStudentCredits = asyncHandler(async (req: IRequest, res: Response) => {
 	const { id: studentId } = req.params
 	const requestingUserId = req.user._id.toString()
-	const requestingUserRole = (req.user as any).role
+	const isAdmin = req.user.isAdmin || req.user.isSuper
 
 	// Allow admin to get any student's credits, or student to get their own credits
-	if (requestingUserRole !== 'admin' && requestingUserId !== studentId) {
+	if (!isAdmin && requestingUserId !== studentId) {
 		res.status(403)
 		throw new Error('Not authorized to access this student\'s credits.')
 	}
@@ -25,10 +25,16 @@ export const getStudentCredits = asyncHandler(async (req: IRequest, res: Respons
 		
 		res.status(OK).json({
 			studentId,
-			totalCredits: creditsInfo.totalCredits, // créditos disponibles
+			totalCredits: creditsInfo.totalCredits,
 			creditsFromAbsences: creditsInfo.creditsFromAbsences,
 			adjustment: creditsInfo.adjustment,
+			adjustmentTotal: creditsInfo.adjustmentTotal,
+			adjustmentUsed: creditsInfo.adjustmentUsed,
 			bookedCount: creditsInfo.bookedCount,
+			adjustmentBookedCount: creditsInfo.adjustmentBookedCount,
+			absencesCount: creditsInfo.absencesCount,
+			consumedAbsences: creditsInfo.consumedAbsences,
+			pendingAbsences: creditsInfo.pendingAbsences,
 			poolCredits: creditsInfo.poolCredits,
 			plan: creditsInfo.plan,
 			maxPending: creditsInfo.maxPending,

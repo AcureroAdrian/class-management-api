@@ -11,10 +11,19 @@
     "dev": "tsnd --respawn --pretty --transpile-only src/server.ts",
     "start": "node dist/server.js",
     "test": "jest",
+    "test:credits": "jest src/__tests__/utils/credits-service.test.ts src/__tests__/controllers/booking-recovery-class.test.ts src/__tests__/controllers/delete-recovery-class.test.ts src/__tests__/controllers/remove-student-from-attendance.test.ts",
     "fix-lint": "./node_modules/eslint/bin/eslint.js  src --ext .ts --fix",
     "script": "ts-node src/seeder.ts",
     "synthetic-absent": "ts-node src/synthetic-mark-student-absent.ts",
-    "set-plans-advanced": "ts-node src/tasks/set-all-students-plan-advanced.ts"
+    "set-plans-advanced": "ts-node src/tasks/set-all-students-plan-advanced.ts",
+    "seed-synthetic-absences": "ts-node src/tasks/seed-synthetic-absences.ts",
+    "reset-credits-adjustments": "ts-node src/tasks/reset-credits-adjustments.ts",
+    "export-class-report": "ts-node src/tasks/export-class-report-to-excel.ts",
+    "adjust-synthetic-credits": "ts-node src/tasks/adjust-student-synthetic-credits.ts",
+    "clear-synthetic-overflow": "ts-node src/tasks/clear-synthetic-overflow.ts",
+    "enrich-excel-with-ids": "ts-node src/tasks/enrich-excel-with-student-ids.ts",
+    "apply-synthetic-credits": "ts-node src/tasks/apply-synthetic-credits-from-excel.ts",
+    "verify-synthetic-credits": "ts-node src/tasks/verify-synthetic-credits-from-excels.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

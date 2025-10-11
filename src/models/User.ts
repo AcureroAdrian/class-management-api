@@ -24,6 +24,7 @@ export interface IUser extends Document {
 	isTrial?: boolean
 	scheduledDeletionDate?: Date
 	recoveryCreditsAdjustment?: number
+	usedRecoveryAdjustmentCredits?: number
 	notifications?: {
 		title: string
 		body: string
@@ -112,6 +113,10 @@ const userSchema = new Schema<IUser>(
 			type: Date,
 		},
 		recoveryCreditsAdjustment: {
+			type: Number,
+			default: 0,
+		},
+		usedRecoveryAdjustmentCredits: {
 			type: Number,
 			default: 0,
 		},
