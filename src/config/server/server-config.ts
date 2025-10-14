@@ -44,6 +44,34 @@ app.use('/api', (req, res, next) => {
 	apiKeyMiddleware(req, res, next)
 })
 
+// TEMPORARY RESTRINTED ACCES
+import { protect, type IRequest } from '../../middleware/auth-middleware'
+import { UNAUTHORIZED } from '../../utils/http-server-status-codes'
+const temporaryPublicRoutes = new Set(['/auth/login', '/system/keep-alive'])
+
+app.use('/api', (req, res, next) => {
+	if (temporaryPublicRoutes.has(req.path)) {
+		return next()
+	}
+
+	return protect(req as IRequest, res, next)
+})
+
+app.use('/api', (req, res, next) => {
+	if (temporaryPublicRoutes.has(req.path)) {
+		return next()
+	}
+
+	const { user } = req as IRequest
+
+	if (user?.isSuper || user?.isAdmin || user?.isTeacher) {
+		return next()
+	}
+
+	res.status(UNAUTHORIZED)
+	throw new Error('Temporary access limited')
+})
+
 app.use('/api', router)
 app.use('/public', express.static(path.join(__dirname, 'public')))
 

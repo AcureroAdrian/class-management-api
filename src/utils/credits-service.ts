@@ -138,7 +138,7 @@ export async function getAvailableCreditsForStudent(studentId: string) {
     const adjustmentNet = adjustmentTotal - adjustmentUsed
 
     // Créditos disponibles totales = créditos por ausencias disponibles + ajuste neto
-    const availableCredits = Math.max(0, absenceCreditsAvailable + adjustmentNet)
+    const availableCredits = absenceCreditsAvailable + adjustmentNet
 
 	return {
 		plan,

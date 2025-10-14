@@ -33,14 +33,15 @@ export const adjustRecoveryCredits = asyncHandler(async (req: IRequest, res: Res
 		res.status(NOT_FOUND)
 		throw new Error('Student not found.')
 	}
-
-	if (adjustment === -1) {
-		const info = await getAvailableCreditsForStudent(studentId)
-		if (info.totalCredits <= 0) {
-			res.status(BAD_REQUEST)
-			throw new Error('Student has no recovery credits to remove.')
-		}
-	}
+	
+	// remove now allows negative credits
+	// if (adjustment === -1) {
+	// 	const info = await getAvailableCreditsForStudent(studentId)
+	// 	if (info.totalCredits <= 0) {
+	// 		res.status(BAD_REQUEST)
+	// 		throw new Error('Student has no recovery credits to remove.')
+	// 	}
+	// }
 
 	student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) + adjustment
 
