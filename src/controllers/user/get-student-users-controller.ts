@@ -4,7 +4,7 @@ import asyncHandler from 'express-async-handler'
 import { Response } from 'express'
 import { IRequest } from '../../middleware/auth-middleware'
 import * as userRepository from '../../repositories/user-repository'
-import { getAvailableCreditsForStudent } from '../../utils/credits-service'
+import { computeAvailableCreditsFromSnapshot, getMultipleAbsenceSnapshots } from '../../utils/credits-service'
 import { NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 
 // @desc    Get all student users
@@ -20,7 +20,8 @@ export const getStudentUsers = asyncHandler(async (req: IRequest, res: Response)
 		throw new Error(mode === 'teachers' ? 'No teachers found.' : 'No students found.')
 	}
 
-    const shouldIncludeCredits = String(includeCredits || 'false') === 'true'
+	// const shouldIncludeCredits = String(includeCredits || 'false') === 'true'
+    const shouldIncludeCredits = true
 
     if (!shouldIncludeCredits) {
         // Responder rápido sin cálculo pesado
@@ -28,15 +29,17 @@ export const getStudentUsers = asyncHandler(async (req: IRequest, res: Response)
         return
     }
 
-    const studentsWithRecoveryCredits = await Promise.all(
-        students.map(async (student) => {
-            const info = await getAvailableCreditsForStudent(student._id.toString())
-            return {
-                ...student,
-                recoveryCredits: info.totalCredits,
-            }
-        }),
-    )
+	const studentIds = students.map((student) => student._id.toString())
+	const snapshotsByStudent = await getMultipleAbsenceSnapshots(studentIds)
+
+	const studentsWithRecoveryCredits = students.map((student) => {
+		const snapshot = snapshotsByStudent.get(student._id.toString())
+		const info = computeAvailableCreditsFromSnapshot(student as any, snapshot)
+		return {
+			...student,
+			recoveryCredits: info.totalCredits,
+		}
+	})
 
     res.status(OK).json(studentsWithRecoveryCredits)
 })

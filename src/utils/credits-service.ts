@@ -117,12 +117,87 @@ export async function getAbsenceAndBookingSnapshot(studentId: string) {
 	}
 }
 
-type SnapshotInfo = {
+export type SnapshotInfo = {
 	absencesCount: number
 	bookedCount: number
 	consumedAbsences: number
 	pendingAbsences: number
 	adjustmentBookedCount: number
+}
+
+const ZERO_SNAPSHOT: SnapshotInfo = {
+	absencesCount: 0,
+	bookedCount: 0,
+	consumedAbsences: 0,
+	pendingAbsences: 0,
+	adjustmentBookedCount: 0,
+}
+
+export type AvailableCreditsInfo = {
+	plan: TEnrollmentPlan
+	maxPending: number
+	creditsFromAbsences: number
+	adjustment: number
+	adjustmentTotal: number
+	adjustmentUsed: number
+	bookedCount: number
+	adjustmentBookedCount: number
+	absencesCount: number
+	consumedAbsences: number
+	pendingAbsences: number
+	poolCredits: number
+	totalCredits: number
+	isFrozen: boolean
+}
+
+type CreditsComputationUser = {
+	enrollmentPlan?: TEnrollmentPlan
+	status?: string
+	isTrial?: boolean
+	recoveryCreditsAdjustment?: number
+	usedRecoveryAdjustmentCredits?: number
+} | null | undefined
+
+export function computeAvailableCreditsFromSnapshot(
+	user: CreditsComputationUser,
+	snapshot?: SnapshotInfo,
+): AvailableCreditsInfo {
+	const plan = ((user?.enrollmentPlan as TEnrollmentPlan) || 'Optimum') as TEnrollmentPlan
+	const maxPending = getMaxPendingForPlan(plan)
+	const isFrozen = user?.status !== 'active' || !plan
+	const isTrial = Boolean(user?.isTrial)
+
+	const baseSnapshot = snapshot ?? ZERO_SNAPSHOT
+	const effectiveSnapshot = isFrozen || isTrial ? ZERO_SNAPSHOT : baseSnapshot
+
+	const absencesCount = effectiveSnapshot?.absencesCount ?? 0
+	const bookedCount = effectiveSnapshot?.bookedCount ?? 0
+	const consumedAbsences = effectiveSnapshot?.consumedAbsences ?? 0
+	const pendingAbsences = effectiveSnapshot?.pendingAbsences ?? 0
+	const adjustmentBookedCount = effectiveSnapshot?.adjustmentBookedCount ?? 0
+
+	const creditsFromAbsences = Math.min(pendingAbsences, maxPending)
+	const adjustmentTotal = user?.recoveryCreditsAdjustment ?? 0
+	const adjustmentUsed = user?.usedRecoveryAdjustmentCredits ?? 0
+	const adjustmentNet = adjustmentTotal - adjustmentUsed
+	const availableCredits = creditsFromAbsences + adjustmentNet
+
+	return {
+		plan,
+		maxPending,
+		creditsFromAbsences,
+		adjustment: adjustmentNet,
+		adjustmentTotal,
+		adjustmentUsed,
+		bookedCount,
+		adjustmentBookedCount,
+		absencesCount,
+		consumedAbsences,
+		pendingAbsences,
+		poolCredits: availableCredits,
+		totalCredits: availableCredits,
+		isFrozen,
+	}
 }
 
 export async function getMultipleAbsenceSnapshots(studentIds: string[]): Promise<Map<string, SnapshotInfo>> {
@@ -248,43 +323,11 @@ export async function getMultipleAbsenceSnapshots(studentIds: string[]): Promise
 
 export async function getAvailableCreditsForStudent(studentId: string) {
 	const user = await User.findById(studentId).lean()
-	const plan = (user?.enrollmentPlan as TEnrollmentPlan) || 'Optimum'
-	const maxPending = getMaxPendingForPlan(plan)
+	const isFrozen = user?.status !== 'active' || !user?.enrollmentPlan
+	const needsSnapshot = Boolean(user) && !isFrozen && !user?.isTrial
+	const snapshot = needsSnapshot ? await getAbsenceAndBookingSnapshot(studentId) : undefined
 
-	// Si no está activo o es trial, no genera por ausencias
-	const isFrozen = user?.status !== 'active' || !plan
-	const { pendingAbsences, bookedCount, absencesCount, consumedAbsences, adjustmentBookedCount } =
-		isFrozen || user?.isTrial
-			? { pendingAbsences: 0, bookedCount: 0, absencesCount: 0, consumedAbsences: 0, adjustmentBookedCount: 0 }
-			: await getAbsenceAndBookingSnapshot(studentId)
-
-	// Créditos por ausencias disponibles = min(ausencias pendientes, tope del plan)
-    const absenceCreditsAvailable = Math.min(pendingAbsences, maxPending)
-
-    // Ajustes manuales: total y usados
-    const adjustmentTotal = user?.recoveryCreditsAdjustment || 0
-    const adjustmentUsed = user?.usedRecoveryAdjustmentCredits || 0
-    const adjustmentNet = adjustmentTotal - adjustmentUsed
-
-    // Créditos disponibles totales = créditos por ausencias disponibles + ajuste neto
-    const availableCredits = absenceCreditsAvailable + adjustmentNet
-
-	return {
-		plan,
-		maxPending,
-        creditsFromAbsences: absenceCreditsAvailable,
-        adjustment: adjustmentNet,
-        adjustmentTotal,
-        adjustmentUsed,
-        bookedCount,
-        adjustmentBookedCount,
-        absencesCount,
-        consumedAbsences,
-        pendingAbsences,
-        poolCredits: absenceCreditsAvailable + adjustmentNet,
-        totalCredits: availableCredits, // mantener nombre usado por el front
-        isFrozen,
-    }
+	return computeAvailableCreditsFromSnapshot(user, snapshot)
 }
 
 // Determina si una nueva ausencia debería marcarse como overflow dados los contadores actuales
