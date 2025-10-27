@@ -7,7 +7,7 @@ import * as studentAttendanceRepository from '../../repositories/student-attenda
 import { BAD_REQUEST, INTERNAL_SERVER_ERROR, NOT_FOUND, OK } from '../../utils/http-server-status-codes'
 import { mongoIdValidator } from '../../utils/validators/input-validator'
 import {
-	getAbsenceAndBookingSnapshot,
+	getMultipleAbsenceSnapshots,
 	getMaxPendingForPlan,
 	shouldOverflowNewAbsence,
 } from '../../utils/credits-service'
@@ -43,6 +43,20 @@ export const updateStudentAttendanceById = asyncHandler(async (req: IRequest, re
 
 	const updatedAttendance = [] as any[]
 
+	const targetStudents = attendance.filter(
+		(item: any) =>
+			(item.attendanceStatus === 'absent' || item.attendanceStatus === 'sick') && !item.isDayOnly && !item.isRecovery,
+	)
+	const uniqueStudentIds: string[] = Array.from(new Set(targetStudents.map((item: any) => String(item.student))))
+
+	const users = await userRepository.findUsersByIds(uniqueStudentIds)
+
+	const userById = new Map<string, any>()
+	for (const user of users) {
+		userById.set(String(user._id), user)
+	}
+
+	const snapshotsByStudent = uniqueStudentIds.length ? await getMultipleAbsenceSnapshots(uniqueStudentIds) : new Map()
 	for (const item of attendance) {
 		const studentId = String(item.student)
 		const prev = existingByStudent.get(studentId)
@@ -51,16 +65,14 @@ export const updateStudentAttendanceById = asyncHandler(async (req: IRequest, re
 		let overflowReason = prev?.overflowReason
 
 		if ((item.attendanceStatus === 'absent' || item.attendanceStatus === 'sick') && !item.isDayOnly && !item.isRecovery) {
-			const user = await userRepository.findUserById(studentId)
+			const user = userById.get(studentId)
 			const planMax = getMaxPendingForPlan((user?.enrollmentPlan as any) || 'Optimum')
 
 			// Obtener snapshot de ausencias y bookings activos
 			const pendingAbsences =
 				user?.isTrial || user?.status !== 'active'
 					? 0
-					: (
-						await getAbsenceAndBookingSnapshot(studentId)
-					).pendingAbsences
+					: snapshotsByStudent.get(studentId)?.pendingAbsences ?? 0
 
 			// Decidir si esta nueva ausencia debería overflow considerando ausencias ya recuperadas
 			if (shouldOverflowNewAbsence(pendingAbsences, planMax)) {

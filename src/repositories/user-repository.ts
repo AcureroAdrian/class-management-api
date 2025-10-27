@@ -15,6 +15,14 @@ export async function findUserById(userId: string) {
 	return User.findById(userId)
 }
 
+export async function findUsersByIds(userIds: string[]) {
+	if (!userIds?.length) {
+		return []
+	}
+
+	return User.find({ _id: { $in: userIds } }).lean()
+}
+
 export async function findUserByEmail(email: string) {
 	return User.findOne({ email, status: 'active' })
 }

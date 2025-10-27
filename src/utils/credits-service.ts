@@ -86,26 +86,26 @@ export async function getActiveBookingsCountForYear(studentId: string): Promise<
 
 // Cantidad de bookings activos del año actual que consumieron ajuste manual
 export async function getActiveAdjustmentBookingsCountForYear(studentId: string): Promise<number> {
-    const now = getCurrentDateInHouston()
-    const year = now.getFullYear()
+	const now = getCurrentDateInHouston()
+	const year = now.getFullYear()
 
-    return await RecoveryClass.countDocuments({
-        student: new mongoose.Types.ObjectId(studentId),
-        status: 'active',
-        usedAdjustment: true,
-        'date.year': year,
-    })
+	return await RecoveryClass.countDocuments({
+		student: new mongoose.Types.ObjectId(studentId),
+		status: 'active',
+		usedAdjustment: true,
+		'date.year': year,
+	})
 }
 
 export async function getAbsenceAndBookingSnapshot(studentId: string) {
-    const [absencesCount, bookedCount, adjustmentBookedCount] = await Promise.all([
-        getCountableAbsencesForYear(studentId),
-        getActiveBookingsCountForYear(studentId),
-        getActiveAdjustmentBookingsCountForYear(studentId),
-    ])
+	const [absencesCount, bookedCount, adjustmentBookedCount] = await Promise.all([
+		getCountableAbsencesForYear(studentId),
+		getActiveBookingsCountForYear(studentId),
+		getActiveAdjustmentBookingsCountForYear(studentId),
+	])
 
-    // Considerar reservas que usaron ajuste como si sumaran a las ausencias contables para el mínimo
-    const consumedAbsences = Math.min(absencesCount + adjustmentBookedCount, bookedCount)
+	// Considerar reservas que usaron ajuste como si sumaran a las ausencias contables para el mínimo
+	const consumedAbsences = Math.min(absencesCount + adjustmentBookedCount, bookedCount)
 	const pendingAbsences = Math.max(0, absencesCount - consumedAbsences)
 
 	return {
@@ -115,6 +115,135 @@ export async function getAbsenceAndBookingSnapshot(studentId: string) {
 		pendingAbsences,
 		adjustmentBookedCount,
 	}
+}
+
+type SnapshotInfo = {
+	absencesCount: number
+	bookedCount: number
+	consumedAbsences: number
+	pendingAbsences: number
+	adjustmentBookedCount: number
+}
+
+export async function getMultipleAbsenceSnapshots(studentIds: string[]): Promise<Map<string, SnapshotInfo>> {
+	const map = new Map<string, SnapshotInfo>()
+	if (!studentIds?.length) {
+		return map
+	}
+
+	const now = getCurrentDateInHouston()
+	const year = now.getFullYear()
+
+	const yesterday = new Date(now)
+	yesterday.setDate(yesterday.getDate() - 1)
+	const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999)
+
+	const idsAsObjectId = studentIds.map((id) => new mongoose.Types.ObjectId(id))
+
+	const absencesPipeline = [
+		{ $match: { 'date.year': year, status: 'active' } },
+		{
+			$addFields: {
+				fullDate: {
+					$dateFromParts: {
+						year: '$date.year',
+						month: '$date.month',
+						day: '$date.day',
+						hour: '$date.hour',
+						minute: '$date.minute',
+					},
+				},
+			},
+		},
+		{ $match: { fullDate: { $lte: yesterdayEnd } } },
+		{ $unwind: '$attendance' },
+		{
+			$match: {
+				'attendance.student': { $in: idsAsObjectId },
+				'attendance.attendanceStatus': { $in: ['absent', 'sick'] },
+				'attendance.isDayOnly': { $ne: true },
+				'attendance.isRecovery': { $ne: true },
+				'attendance.isOverflowAbsence': { $ne: true },
+			},
+		},
+		{
+			$group: {
+				_id: '$attendance.student',
+				absencesCount: { $sum: 1 },
+			},
+		},
+	]
+
+	const absencesCounts = await StudentAttendance.aggregate(absencesPipeline)
+	for (const item of absencesCounts) {
+		map.set(String(item._id), {
+			absencesCount: item.absencesCount ?? 0,
+			bookedCount: 0,
+			consumedAbsences: 0,
+			pendingAbsences: 0,
+			adjustmentBookedCount: 0,
+		})
+	}
+
+	const bookings = await RecoveryClass.aggregate([
+		{
+			$match: {
+				student: { $in: idsAsObjectId },
+				status: 'active',
+				'date.year': year,
+			},
+		},
+		{
+			$group: {
+				_id: '$student',
+				bookedCount: { $sum: 1 },
+				adjustmentBookedCount: {
+					$sum: {
+						$cond: [{ $eq: ['$usedAdjustment', true] }, 1, 0],
+					},
+				},
+			},
+		},
+	])
+
+	for (const booking of bookings) {
+		const key = String(booking._id)
+		const existing = map.get(key) || {
+			absencesCount: 0,
+			bookedCount: 0,
+			consumedAbsences: 0,
+			pendingAbsences: 0,
+			adjustmentBookedCount: 0,
+		}
+		existing.bookedCount = booking.bookedCount ?? 0
+		existing.adjustmentBookedCount = booking.adjustmentBookedCount ?? 0
+		map.set(key, existing)
+	}
+
+	for (const [key, info] of map.entries()) {
+		const consumedAbsences = Math.min(info.absencesCount + info.adjustmentBookedCount, info.bookedCount)
+		const pendingAbsences = Math.max(0, info.absencesCount - consumedAbsences)
+		map.set(key, {
+			...info,
+			consumedAbsences,
+			pendingAbsences,
+		})
+	}
+
+	// Asegurar que todos tienen entrada
+	for (const id of studentIds) {
+		if (!map.has(id)) {
+			map.set(id, {
+				absencesCount: 0,
+				bookedCount: 0,
+				consumedAbsences: 0,
+				pendingAbsences: 0,
+				adjustmentBookedCount: 0,
+			})
+		}
+	}
+
+	return map
 }
 
 export async function getAvailableCreditsForStudent(studentId: string) {
