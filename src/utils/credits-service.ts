@@ -104,9 +104,14 @@ export async function getAbsenceAndBookingSnapshot(studentId: string) {
 		getActiveAdjustmentBookingsCountForYear(studentId),
 	])
 
-	// Considerar reservas que usaron ajuste como si sumaran a las ausencias contables para el mínimo
-	const consumedAbsences = Math.min(absencesCount + adjustmentBookedCount, bookedCount)
-	const pendingAbsences = Math.max(0, absencesCount)
+	console.log({absencesCount, bookedCount, adjustmentBookedCount})
+
+	// Solo las reservas SIN ajuste consumen ausencias; las con ajuste no reducen ausencias pendientes
+	const nonAdjustmentBookedCount = Math.max(0, bookedCount - adjustmentBookedCount)
+	const consumedAbsences = Math.min(absencesCount, nonAdjustmentBookedCount)
+	const pendingAbsences = Math.max(0, absencesCount - consumedAbsences)
+
+	console.log({consumedAbsences, pendingAbsences})
 
 	return {
 		absencesCount,
@@ -162,9 +167,10 @@ export function computeAvailableCreditsFromSnapshot(
 	user: CreditsComputationUser,
 	snapshot?: SnapshotInfo,
 ): AvailableCreditsInfo {
-	const plan = ((user?.enrollmentPlan as TEnrollmentPlan) || 'Optimum') as TEnrollmentPlan
+	const hasPlan = Boolean(user?.enrollmentPlan)
+	const plan = (hasPlan ? (user?.enrollmentPlan as TEnrollmentPlan) : 'Optimum') as TEnrollmentPlan
 	const maxPending = getMaxPendingForPlan(plan)
-	const isFrozen = user?.status !== 'active' || !plan
+	const isFrozen = user?.status !== 'active' || !hasPlan
 	const isTrial = Boolean(user?.isTrial)
 
 	const baseSnapshot = snapshot ?? ZERO_SNAPSHOT
@@ -179,6 +185,8 @@ export function computeAvailableCreditsFromSnapshot(
 	const creditsFromAbsences = Math.min(pendingAbsences, maxPending)
 	const adjustmentTotal = user?.recoveryCreditsAdjustment ?? 0
 	const adjustmentUsed = user?.usedRecoveryAdjustmentCredits ?? 0
+
+	// Destructivos
 	const adjustmentNet = adjustmentTotal - adjustmentUsed
 	const availableCredits = creditsFromAbsences + adjustmentNet
 
@@ -296,7 +304,8 @@ export async function getMultipleAbsenceSnapshots(studentIds: string[]): Promise
 	}
 
 	for (const [key, info] of map.entries()) {
-		const consumedAbsences = Math.min(info.absencesCount + info.adjustmentBookedCount, info.bookedCount)
+		const nonAdjustmentBookedCount = Math.max(0, info.bookedCount - info.adjustmentBookedCount)
+		const consumedAbsences = Math.min(info.absencesCount, nonAdjustmentBookedCount)
 		const pendingAbsences = Math.max(0, info.absencesCount - consumedAbsences)
 		map.set(key, {
 			...info,
