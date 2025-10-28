@@ -103,10 +103,8 @@ export const removeStudentFromAttendance = asyncHandler(async (req: IRequest, re
 		if (student) {
 			if ((recoveryClass as any)?.usedAdjustment) {
 				student.usedRecoveryAdjustmentCredits = Math.max(0, (student.usedRecoveryAdjustmentCredits || 0) - 1)
-				student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) + 1
 			} else if (!recoveryClass.attendance) {
 				student.usedRecoveryAdjustmentCredits = Math.max(0, (student.usedRecoveryAdjustmentCredits || 0) - 1)
-				student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) + 1
 			}
 			await userRepository.saveUser(student)
 		}

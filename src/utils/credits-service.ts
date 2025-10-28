@@ -106,7 +106,7 @@ export async function getAbsenceAndBookingSnapshot(studentId: string) {
 
 	// Considerar reservas que usaron ajuste como si sumaran a las ausencias contables para el mínimo
 	const consumedAbsences = Math.min(absencesCount + adjustmentBookedCount, bookedCount)
-	const pendingAbsences = Math.max(0, absencesCount - consumedAbsences)
+	const pendingAbsences = Math.max(0, absencesCount)
 
 	return {
 		absencesCount,

@@ -118,7 +118,6 @@ export const bookingRecoveryClassById = asyncHandler(async (req: IRequest, res: 
 	// Si se usó ajuste, incrementar contador de usados en el estudiante
 	if (recoveryClass && shouldUseAdjustment) {
 		student.usedRecoveryAdjustmentCredits = (student.usedRecoveryAdjustmentCredits || 0) + 1
-		student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) - 1
 		await userRepository.saveUser(student)
 	}
 

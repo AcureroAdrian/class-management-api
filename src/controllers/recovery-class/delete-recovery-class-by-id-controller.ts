@@ -76,7 +76,6 @@ export const deleteRecoveryClassById = asyncHandler(async (req: IRequest, res: R
 			const student = await userRepository.findUserById(recoveryClass.student.toString())
 			if (student) {
 				student.usedRecoveryAdjustmentCredits = Math.max(0, (student.usedRecoveryAdjustmentCredits || 0) - 1)
-				student.recoveryCreditsAdjustment = (student.recoveryCreditsAdjustment || 0) + 1
 				await userRepository.saveUser(student)
 			}
 		}
