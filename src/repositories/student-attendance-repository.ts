@@ -37,6 +37,7 @@ export async function findStudentAttendanceByDates(
 						year: startDate.year,
 						month: startDate.month,
 						day: startDate.day,
+						timezone: 'America/Chicago',
 					},
 				},
 				endDate: {
@@ -44,6 +45,7 @@ export async function findStudentAttendanceByDates(
 						year: endDate.year,
 						month: endDate.month,
 						day: endDate.day,
+						timezone: 'America/Chicago',
 					},
 				},
 				attendanceDate: {
@@ -51,6 +53,7 @@ export async function findStudentAttendanceByDates(
 						year: '$date.year',
 						month: '$date.month',
 						day: '$date.day',
+						timezone: 'America/Chicago',
 					},
 				},
 			},
