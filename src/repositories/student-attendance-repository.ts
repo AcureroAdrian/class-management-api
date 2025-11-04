@@ -83,6 +83,34 @@ export async function findStudentAttendanceByDates(
 		{
 			$unwind: '$karateClass',
 		},
+        // Lookup recovery classes for each class and date in range
+        {
+            $lookup: {
+                from: 'recoveryclasses',
+                let: {
+                    classId: '$karateClass._id',
+                    year: '$date.year',
+                    month: '$date.month',
+                    day: '$date.day',
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            status: 'active',
+                            $expr: {
+                                $and: [
+                                    { $eq: ['$karateClass', '$$classId'] },
+                                    { $eq: ['$date.year', '$$year'] },
+                                    { $eq: ['$date.month', '$$month'] },
+                                    { $eq: ['$date.day', '$$day'] },
+                                ],
+                            },
+                        },
+                    },
+                ],
+                as: 'recoveryClasses',
+            },
+        },
 		{
 			$unwind: '$attendance',
 		},
@@ -98,22 +126,39 @@ export async function findStudentAttendanceByDates(
 			$unwind: '$attendance.student',
 		},
 		{
-			$group: {
-				_id: '$_id',
-				karateClassName: {
-					$first: '$karateClass.name',
-				},
-				date: { $first: '$date' },
-				attendance: { $push: '$attendance' },
-				attendanceDate: { $first: '$attendanceDate' },
-			},
+            $group: {
+                _id: '$_id',
+                karateClassName: { $first: '$karateClass.name' },
+                date: { $first: '$date' },
+                attendanceDate: { $first: '$attendanceDate' },
+                recoveryClasses: { $first: '$recoveryClasses' },
+                attendance: {
+                    $push: {
+                        student: '$attendance.student',
+                        attendanceStatus: '$attendance.attendanceStatus',
+                        observations: '$attendance.observations',
+                        isDayOnly: '$attendance.isDayOnly',
+                        isRecovery: {
+                            $in: ['$attendance.student._id', '$recoveryClasses.student'],
+                        },
+                        isOverflowAbsence: '$attendance.isOverflowAbsence',
+                        overflowReason: '$attendance.overflowReason',
+                    },
+                },
+            },
 		},
 		{
 			$group: {
 				_id: '$attendanceDate',
-				karateClasses: {
-					$push: '$$ROOT',
-				},
+                karateClasses: {
+                    $push: {
+                        _id: '$_id',
+                        karateClassName: '$karateClassName',
+                        date: '$date',
+                        attendance: '$attendance',
+                        attendanceDate: '$attendanceDate',
+                    },
+                },
 			},
 		},
 		{
@@ -181,6 +226,34 @@ export async function findStudentAttendanceByClassAndDates(
 		{
 			$unwind: '$karateClass',
 		},
+        // Lookup recovery classes for each class and date in range
+        {
+            $lookup: {
+                from: 'recoveryclasses',
+                let: {
+                    classId: '$karateClass._id',
+                    year: '$date.year',
+                    month: '$date.month',
+                    day: '$date.day',
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            status: 'active',
+                            $expr: {
+                                $and: [
+                                    { $eq: ['$karateClass', '$$classId'] },
+                                    { $eq: ['$date.year', '$$year'] },
+                                    { $eq: ['$date.month', '$$month'] },
+                                    { $eq: ['$date.day', '$$day'] },
+                                ],
+                            },
+                        },
+                    },
+                ],
+                as: 'recoveryClasses',
+            },
+        },
 		{
 			$unwind: '$attendance',
 		},
@@ -203,9 +276,22 @@ export async function findStudentAttendanceByClassAndDates(
 					$first: '$karateClass.name',
 				},
 				date: { $first: '$date' },
-				attendance: { $push: '$attendance' },
 				attendanceDate: {
 					$first: '$attendanceDate',
+				},
+				recoveryClasses: { $first: '$recoveryClasses' },
+				attendance: {
+					$push: {
+						student: '$attendance.student',
+						attendanceStatus: '$attendance.attendanceStatus',
+						observations: '$attendance.observations',
+						isDayOnly: '$attendance.isDayOnly',
+						isRecovery: {
+							$in: ['$attendance.student._id', '$recoveryClasses.student'],
+						},
+						isOverflowAbsence: '$attendance.isOverflowAbsence',
+						overflowReason: '$attendance.overflowReason',
+					},
 				},
 			},
 		},
