@@ -11,17 +11,22 @@ import connectDB from '../config/db/db'
 import { User } from '../models/User'
 
 const EXPORTS_DIR = path.resolve(process.cwd(), 'exports')
-const INPUT_FILE_NAME = process.env.EXCEL_INPUT_FILE ?? 'corte-al-1001 no ids Katy.xlsx'
-const OUTPUT_FILE_NAME = process.env.EXCEL_OUTPUT_FILE ?? 'corte-al-1001-with-ids Katy.xlsx'
+const INPUT_FILE_NAME = process.env.EXCEL_INPUT_FILE ?? 'Spring oct 2.xlsx'
+const OUTPUT_FILE_NAME = process.env.EXCEL_OUTPUT_FILE ?? 'Spring oct 2 with-ids.xlsx'
 
 const INPUT_FILE = path.resolve(EXPORTS_DIR, INPUT_FILE_NAME)
 const OUTPUT_FILE = path.resolve(EXPORTS_DIR, OUTPUT_FILE_NAME)
 
-type Row = {
-	Apellido?: string
-	Nombre?: string
-	Plan?: string
-	Credits?: number | string
+type Row = Record<string, unknown>
+
+function getFirstValue<T = unknown>(row: Row, keys: string[]): T | undefined {
+	for (const key of keys) {
+		const value = row[key]
+		if (value !== undefined && value !== null && value !== '') {
+			return value as T
+		}
+	}
+	return undefined
 }
 
 function normalizeName(value: string | undefined | null): string {
@@ -36,8 +41,25 @@ function normalizeName(value: string | undefined | null): string {
 }
 
 async function main() {
-	if (!fs.existsSync(INPUT_FILE)) {
-		throw new Error(`Archivo de entrada no encontrado: ${INPUT_FILE}`)
+	// Resolver archivo de entrada permitiendo tanto en exports/ como en la raíz del proyecto
+	const candidateInputs = [
+		INPUT_FILE,
+		path.resolve(process.cwd(), INPUT_FILE_NAME),
+		path.isAbsolute(INPUT_FILE_NAME) ? INPUT_FILE_NAME : '',
+	].filter(Boolean) as string[]
+
+	let resolvedInput = ''
+	for (const candidate of candidateInputs) {
+		if (fs.existsSync(candidate)) {
+			resolvedInput = candidate
+			break
+		}
+	}
+
+	if (!resolvedInput) {
+		throw new Error(
+			`Archivo de entrada no encontrado. Intentado: ${candidateInputs.join(' | ')}`
+		)
 	}
 
 	await connectDB()
@@ -76,15 +98,25 @@ async function main() {
 		ambiguousKeys.forEach((key) => console.log(` - ${key}`))
 	}
 
-	const workbook = XLSX.readFile(INPUT_FILE)
+	const workbook = XLSX.readFile(resolvedInput)
 	const sheetName = workbook.SheetNames[0]
 	const sheet = workbook.Sheets[sheetName]
 	const rawRows = XLSX.utils.sheet_to_json<Row>(sheet, { defval: '' })
 
-	const headers = ['Apellido', 'Nombre', 'Plan', 'Credits', 'StudentId']
+	// Detectar encabezados según la nueva distribución (minúsculas) o la anterior (capitalizada)
+	const useLowercaseHeaders = rawRows.length
+		? Object.prototype.hasOwnProperty.call(rawRows[0], 'apellido') ||
+		  Object.prototype.hasOwnProperty.call(rawRows[0], 'nombre')
+		: false
+
+	const baseHeaders = useLowercaseHeaders
+		? ['apellido', 'nombre', 'plan', 'creditos']
+		: ['Apellido', 'Nombre', 'Plan', 'Credits']
+
+	const headers = [...baseHeaders, 'StudentId']
 	const outputRows = rawRows.map((row) => {
-		const lastName = String(row.Apellido ?? '').trim()
-		const firstName = String(row.Nombre ?? '').trim()
+		const lastName = String(getFirstValue(row, ['Apellido', 'apellido']) ?? '').trim()
+		const firstName = String(getFirstValue(row, ['Nombre', 'nombre']) ?? '').trim()
 		let studentId = ''
 
 		if (firstName && lastName) {
@@ -95,13 +127,25 @@ async function main() {
 			}
 		}
 
-		return {
-			Apellido: row.Apellido ?? '',
-			Nombre: row.Nombre ?? '',
-			Plan: row.Plan ?? '',
-			Credits: row.Credits ?? '',
-			StudentId: studentId,
+		// Construir el objeto de salida respetando el nombre/origen de los encabezados
+		const result: Record<string, string | number> = {}
+		for (const h of baseHeaders) {
+			if (h === 'Apellido' || h === 'apellido') {
+				result[h] = (getFirstValue(row, ['Apellido', 'apellido']) as any) ?? ''
+			} else if (h === 'Nombre' || h === 'nombre') {
+				result[h] = (getFirstValue(row, ['Nombre', 'nombre']) as any) ?? ''
+			} else if (h === 'Plan' || h === 'plan') {
+				result[h] = (getFirstValue(row, ['Plan', 'plan']) as any) ?? ''
+			} else if (
+				h === 'Credits' ||
+				h === 'creditos'
+			) {
+				result[h] =
+					(getFirstValue(row, ['Credits', 'credits', 'creditos', 'Créditos', 'créditos']) as any) ?? ''
+			}
 		}
+		result['StudentId'] = studentId
+		return result
 	})
 
 	if (!fs.existsSync(EXPORTS_DIR)) {

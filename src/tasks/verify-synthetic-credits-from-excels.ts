@@ -11,18 +11,22 @@ import mongoose from 'mongoose'
 import connectDB from '../config/db/db'
 import { getAvailableCreditsForStudent, TEnrollmentPlan } from '../utils/credits-service'
 
-type InputRow = {
-	Apellido?: string | number
-	Nombre?: string | number
-	Plan?: string
-	Credits?: number | string
-	StudentId?: string
-}
+type InputRow = Record<string, unknown>
 
 const EXPORTS_DIR = path.resolve(process.cwd(), 'exports')
-const FILES = ['corte-al-1001-with-ids.xlsx', 'corte-al-1001-with-ids Katy.xlsx']
+const FILES = ['balances al 1010 with-ids Katy.xlsx']
 
-function parseCredits(value: InputRow['Credits']): number | null {
+function getFirst<T = unknown>(row: InputRow, keys: string[]): T | undefined {
+	for (const key of keys) {
+		const value = row[key]
+		if (value !== undefined && value !== null && value !== '') {
+			return value as T
+		}
+	}
+	return undefined
+}
+
+function parseCredits(value: unknown): number | null {
 	if (typeof value === 'number' && !Number.isNaN(value)) return value
 	if (typeof value === 'string') {
 		const clean = value.trim()
@@ -31,6 +35,34 @@ function parseCredits(value: InputRow['Credits']): number | null {
 		return Number.isFinite(num) && num >= 0 ? num : null
 	}
 	return null
+}
+
+function normalizePlan(value: unknown): TEnrollmentPlan | null {
+	if (!value) return null
+	if (typeof value !== 'string') return null
+	const trimmed = value.trim()
+	if (!trimmed) return null
+	const normalized = trimmed
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.toLowerCase()
+		.replace(/[^a-z]/g, '')
+
+	switch (normalized) {
+		case 'basic':
+			return 'Basic'
+		case 'optimum':
+		case 'optimo':
+		case 'optimun':
+			return 'Optimum'
+		case 'plus':
+			return 'Plus'
+		case 'advanced':
+		case 'advance':
+			return 'Advanced'
+		default:
+			return null
+	}
 }
 
 async function main() {
@@ -70,9 +102,11 @@ async function main() {
 	const skipped: Array<{ file: string; row: InputRow; reason: string }> = []
 
 	for (const { file, row } of rowsToCheck) {
-		const studentId = String(row.StudentId ?? '').trim()
-		const planValue = String(row.Plan ?? '').trim()
-		const expectedCredits = parseCredits(row.Credits)
+		const studentIdRaw = getFirst<string>(row, ['StudentId', 'studentId', 'ID', 'Id']) ?? ''
+		const studentId = String(studentIdRaw).trim()
+		const planRaw = getFirst(row, ['Plan', 'plan'])
+		const expectedPlan = normalizePlan(planRaw) || undefined
+		const expectedCredits = parseCredits(getFirst(row, ['Credits', 'credits', 'creditos', 'créditos']))
 
 		if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
 			skipped.push({ file, row, reason: 'StudentId inválido o vacío' })
@@ -84,14 +118,9 @@ async function main() {
 			continue
 		}
 
-		let expectedPlan: TEnrollmentPlan | undefined
-		if (planValue) {
-			if (['Basic', 'Optimum', 'Plus', 'Advanced'].includes(planValue)) {
-				expectedPlan = planValue as TEnrollmentPlan
-			} else {
-				skipped.push({ file, row, reason: `Plan inválido: ${planValue}` })
-				continue
-			}
+		if (planRaw && !expectedPlan) {
+			skipped.push({ file, row, reason: `Plan inválido: ${planRaw}` })
+			continue
 		}
 
 		try {

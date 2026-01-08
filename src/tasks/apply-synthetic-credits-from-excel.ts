@@ -15,28 +15,62 @@ import { StudentAttendance } from '../models/StudentAttendance'
 import { enforceOverflowAfterPlanDowngrade, TEnrollmentPlan } from '../utils/credits-service'
 
 const EXPORTS_DIR = path.resolve(process.cwd(), 'exports')
-const INPUT_FILE_NAME = process.env.EXCEL_INPUT_FILE ?? 'corte-al-1001-with-ids Katy.xlsx'
+const INPUT_FILE_NAME = process.env.EXCEL_INPUT_FILE ?? 'Spring oct 2 with-ids.xlsx'
 const INPUT_FILE = path.resolve(EXPORTS_DIR, INPUT_FILE_NAME)
 const SYNTHETIC_CLASS_NAME = 'Synthetic Credit Seed Class'
 const VALID_PLANS: TEnrollmentPlan[] = ['Basic', 'Optimum', 'Plus', 'Advanced']
 
-type InputRow = {
-	Apellido?: string | number
-	Nombre?: string | number
-	Plan?: string
-	Credits?: number | string
-	StudentId?: string
+type InputRow = Record<string, unknown>
+
+function getFirst<T = unknown>(row: InputRow, keys: string[]): T | undefined {
+	for (const key of keys) {
+		const value = row[key]
+		if (value !== undefined && value !== null && value !== '') {
+			return value as T
+		}
+	}
+	return undefined
 }
 
-function parseCredits(value: InputRow['Credits']): number | null {
-	if (typeof value === 'number' && !Number.isNaN(value)) return value
+function parseCredits(value: unknown): number | null {
+	if (typeof value === 'number' && Number.isFinite(value)) return value
 	if (typeof value === 'string') {
 		const clean = value.trim()
 		if (!clean) return 0
 		const num = Number(clean.replace(',', '.'))
-		return Number.isFinite(num) && num >= 0 ? num : null
+		return Number.isFinite(num) ? num : null
 	}
 	return null
+}
+
+function normalizePlan(value: unknown): TEnrollmentPlan | null {
+	if (!value) return null
+	if (typeof value !== 'string') return null
+	const trimmed = value.trim()
+	if (!trimmed) return null
+	const normalized = trimmed
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.toLowerCase()
+		.replace(/[^a-z]/g, '')
+
+	switch (normalized) {
+		case 'basic':
+			return 'Basic'
+		case 'optimum':
+		case 'optimo':
+		case 'optimumplan':
+		case 'optimun':
+		case 'optimumd':
+			return 'Optimum'
+		case 'plus':
+			return 'Plus'
+		case 'advanced':
+		case 'advance':
+			return 'Advanced'
+		default:
+			return null
+	}
 }
 
 async function adjustStudentCredits(
@@ -154,26 +188,31 @@ async function main() {
 	console.log(`Filas en archivo: ${rows.length}`)
 
 	for (const row of rows) {
-		const studentId = String(row.StudentId ?? '').trim()
-		const planValue = String(row.Plan ?? '').trim()
-		const creditsValue = parseCredits(row.Credits)
+		const studentIdRaw = getFirst<string>(row, ['StudentId', 'studentId', 'ID', 'Id']) ?? ''
+		const studentId = String(studentIdRaw).trim()
+		const planRaw = getFirst(row, ['Plan', 'plan'])
+		const normalizedPlan = normalizePlan(planRaw)
+		const creditsRaw = getFirst(row, ['Credits', 'credits', 'creditos', 'créditos'])
+		const creditsValue = parseCredits(creditsRaw)
 
 		if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
 			console.warn('Saltando fila por StudentId inválido', row)
 			continue
 		}
 
-		if (!VALID_PLANS.includes(planValue as TEnrollmentPlan)) {
-			console.warn(`Plan inválido para ${studentId}: ${planValue}`)
+		if (!normalizedPlan) {
+			console.warn(`Plan inválido para ${studentId}: ${planRaw}`)
 			continue
 		}
 
-		if (creditsValue === null || creditsValue < 0) {
+	if (creditsValue === null) {
 			console.warn(`Créditos inválidos para ${studentId}: ${row.Credits}`)
 			continue
 		}
 
-		await adjustStudentCredits(studentId, planValue as TEnrollmentPlan, creditsValue, syntheticClassId)
+	const normalizedCredits = Math.max(0, creditsValue)
+
+	await adjustStudentCredits(studentId, normalizedPlan, normalizedCredits, syntheticClassId)
 	}
 
 	await mongoose.connection.close()

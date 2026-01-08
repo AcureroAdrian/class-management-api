@@ -45,9 +45,9 @@ describe('booking-recovery-class controller', () => {
         expect(recoveryClassRepository.createRecoveryClass).toHaveBeenCalledWith(
             expect.objectContaining({ usedAdjustment: true })
         )
-        // userRepository.saveUser debe haberse llamado para incrementar used y decrementar restantes
+        // userRepository.saveUser debe haberse llamado para incrementar used (recoveryCreditsAdjustment no se decrementa aquí)
         expect(userRepository.saveUser).toHaveBeenCalledWith(
-            expect.objectContaining({ usedRecoveryAdjustmentCredits: 1, recoveryCreditsAdjustment: 0 })
+            expect.objectContaining({ usedRecoveryAdjustmentCredits: 1, recoveryCreditsAdjustment: 1 })
         )
         expect(res.status).toHaveBeenCalledWith(200)
     })

@@ -557,6 +557,13 @@ export async function findAbsentsByStudentId(studentId: string, options: { onlyU
 	const houstonNow = getCurrentDateInHouston()
 	const [year, month, day] = format(houstonNow, 'yyyy-MM-dd').split('-')
 	const pipeline: any[] = [
+		// Match temprano por alumno para evitar escaneo completo (y para soportar histórico)
+		{
+			$match: {
+				status: 'active',
+				'attendance.student': new ObjectId(studentId),
+			},
+		},
 		{
 			$addFields: {
 				today: {
@@ -578,7 +585,8 @@ export async function findAbsentsByStudentId(studentId: string, options: { onlyU
 		{
 			$match: {
 				$expr: {
-					$and: [{ $eq: ['$date.year', Number(year)] }, { $lt: ['$attendanceDate', '$today'] }],
+					// Histórico: incluir ausencias de cualquier año, siempre que sea antes de hoy
+					$lt: ['$attendanceDate', '$today'],
 				},
 			},
 		},

@@ -26,11 +26,10 @@ export function computeCreditsFromAbsences(absencesCount: number): number {
 	return absencesCount
 }
 
-// Obtiene la cantidad de ausencias contables (no overflow) del año actual hasta ayer
+// Obtiene la cantidad de ausencias contables (no overflow) de todo el historial hasta ayer
 // Ya no excluye por estar reservadas - el pool se calcula independientemente
 export async function getCountableAbsencesForYear(studentId: string): Promise<number> {
 	const now = getCurrentDateInHouston()
-	const year = now.getFullYear()
 
 	// Calcular la fecha de ayer
 	const yesterday = new Date(now)
@@ -39,7 +38,8 @@ export async function getCountableAbsencesForYear(studentId: string): Promise<nu
 
 	// Ahora obtener el conteo
 	const results = await StudentAttendance.aggregate([
-		{ $match: { 'date.year': year, status: 'active' } },
+		// Match temprano por alumno para no escanear toda la colección al quitar el filtro por año
+		{ $match: { status: 'active', 'attendance.student': new mongoose.Types.ObjectId(studentId) } },
 		{
 			$addFields: {
 				fullDate: {
@@ -72,28 +72,20 @@ export async function getCountableAbsencesForYear(studentId: string): Promise<nu
 	return count
 }
 
-// Obtiene la cantidad de bookings activos del año actual
+// Obtiene la cantidad de bookings activos de todo el historial
 export async function getActiveBookingsCountForYear(studentId: string): Promise<number> {
-	const now = getCurrentDateInHouston()
-	const year = now.getFullYear()
-
 	return await RecoveryClass.countDocuments({
 		student: new mongoose.Types.ObjectId(studentId),
 		status: 'active',
-		'date.year': year,
 	})
 }
 
-// Cantidad de bookings activos del año actual que consumieron ajuste manual
+// Cantidad de bookings activos de todo el historial que consumieron ajuste manual
 export async function getActiveAdjustmentBookingsCountForYear(studentId: string): Promise<number> {
-	const now = getCurrentDateInHouston()
-	const year = now.getFullYear()
-
 	return await RecoveryClass.countDocuments({
 		student: new mongoose.Types.ObjectId(studentId),
 		status: 'active',
 		usedAdjustment: true,
-		'date.year': year,
 	})
 }
 
@@ -215,7 +207,6 @@ export async function getMultipleAbsenceSnapshots(studentIds: string[]): Promise
 	}
 
 	const now = getCurrentDateInHouston()
-	const year = now.getFullYear()
 
 	const yesterday = new Date(now)
 	yesterday.setDate(yesterday.getDate() - 1)
@@ -224,7 +215,8 @@ export async function getMultipleAbsenceSnapshots(studentIds: string[]): Promise
 	const idsAsObjectId = studentIds.map((id) => new mongoose.Types.ObjectId(id))
 
 	const absencesPipeline = [
-		{ $match: { 'date.year': year, status: 'active' } },
+		// Match temprano por alumnos para evitar escaneo completo al usar histórico
+		{ $match: { status: 'active', 'attendance.student': { $in: idsAsObjectId } } },
 		{
 			$addFields: {
 				fullDate: {
@@ -273,7 +265,6 @@ export async function getMultipleAbsenceSnapshots(studentIds: string[]): Promise
 			$match: {
 				student: { $in: idsAsObjectId },
 				status: 'active',
-				'date.year': year,
 			},
 		},
 		{
@@ -347,13 +338,12 @@ export function shouldOverflowNewAbsence(currentPendingAbsences: number, planMax
 
 // Recalcula overflow tras un cambio de plan (solo agrega overflow; no lo remueve).
 export async function enforceOverflowAfterPlanDowngrade(studentId: string, newPlan: TEnrollmentPlan) {
-	const now = getCurrentDateInHouston()
-	const year = now.getFullYear()
 	const planMax = getMaxPendingForPlan(newPlan)
 	const { bookedCount } = await getAbsenceAndBookingSnapshot(studentId)
 
 	const items = await StudentAttendance.aggregate([
-		{ $match: { 'date.year': year, status: 'active' } },
+		// Histórico: sin filtro por año. Match temprano por alumno para reducir carga.
+		{ $match: { status: 'active', 'attendance.student': new mongoose.Types.ObjectId(studentId) } },
 		{
 			$addFields: {
 				attendanceDate: {
