@@ -9,9 +9,18 @@ import { mongoIdValidator } from '../../utils/validators/input-validator'
 import {
 	getMultipleAbsenceSnapshots,
 	getMaxPendingForPlan,
+	getPendingAbsencesBeforeAttendanceUpdate,
 	shouldOverflowNewAbsence,
 } from '../../utils/credits-service'
 import * as userRepository from '../../repositories/user-repository'
+
+function isAbsenceThatCanGenerateCredit(item: any): boolean {
+	return (
+		(item.attendanceStatus === 'absent' || item.attendanceStatus === 'sick') &&
+		!item.isDayOnly &&
+		!item.isRecovery
+	)
+}
 
 // @desc    PATCH update student attendance by id
 // @route   PATCH /api/student-attendances/:id
@@ -43,10 +52,7 @@ export const updateStudentAttendanceById = asyncHandler(async (req: IRequest, re
 
 	const updatedAttendance = [] as any[]
 
-	const targetStudents = attendance.filter(
-		(item: any) =>
-			(item.attendanceStatus === 'absent' || item.attendanceStatus === 'sick') && !item.isDayOnly && !item.isRecovery,
-	)
+	const targetStudents = attendance.filter(isAbsenceThatCanGenerateCredit)
 	const uniqueStudentIds: string[] = Array.from(new Set(targetStudents.map((item: any) => String(item.student))))
 
 	const users = await userRepository.findUsersByIds(uniqueStudentIds)
@@ -60,37 +66,33 @@ export const updateStudentAttendanceById = asyncHandler(async (req: IRequest, re
 	for (const item of attendance) {
 		const studentId = String(item.student)
 		const prev = existingByStudent.get(studentId)
+		const canGenerateCredit = isAbsenceThatCanGenerateCredit(item)
 
-		let isOverflowAbsence = Boolean(prev?.isOverflowAbsence)
-		let overflowReason = prev?.overflowReason
+		let isOverflowAbsence = false
+		let overflowReason
 
-		if ((item.attendanceStatus === 'absent' || item.attendanceStatus === 'sick') && !item.isDayOnly && !item.isRecovery) {
+		if (canGenerateCredit) {
 			const user = userById.get(studentId)
 			const planMax = getMaxPendingForPlan((user?.enrollmentPlan as any) || 'Optimum')
 
 			// Obtener snapshot de ausencias y bookings activos
+			const snapshot = snapshotsByStudent.get(studentId)
 			const pendingAbsences =
 				user?.isTrial || user?.status !== 'active'
 					? 0
-					: snapshotsByStudent.get(studentId)?.pendingAbsences ?? 0
+					: getPendingAbsencesBeforeAttendanceUpdate(snapshot, prev, studentAttendance.date)
 
 			// Decidir si esta nueva ausencia debería overflow considerando ausencias ya recuperadas
 			if (shouldOverflowNewAbsence(pendingAbsences, planMax)) {
 				isOverflowAbsence = true
-				overflowReason = overflowReason || 'plan-cap'
-			} else {
-				overflowReason = undefined
+				overflowReason = prev?.overflowReason || 'plan-cap'
 			}
 		}
 
 		updatedAttendance.push({
 			...item,
-			isOverflowAbsence:
-				item.attendanceStatus === 'absent' || item.attendanceStatus === 'sick' ? Boolean(isOverflowAbsence) : false,
-			overflowReason:
-				item.attendanceStatus === 'absent' || item.attendanceStatus === 'sick'
-					? overflowReason
-					: undefined,
+			isOverflowAbsence: canGenerateCredit ? Boolean(isOverflowAbsence) : false,
+			overflowReason: canGenerateCredit ? overflowReason : undefined,
 		})
 	}
 

@@ -20,6 +20,8 @@ import {
     getMaxPendingForPlan,
     getAbsenceAndBookingSnapshot,
     getAvailableCreditsForStudent,
+    getPendingAbsencesBeforeAttendanceUpdate,
+    shouldOverflowNewAbsence,
 } from '../../utils/credits-service'
 
 const MOCKED_NOW = new Date('2025-09-05T12:00:00-05:00')
@@ -49,6 +51,67 @@ describe('credits-service', () => {
         expect(getMaxPendingForPlan('Plus' as any)).toBe(6)
         expect(getMaxPendingForPlan('Advanced' as any)).toBe(8)
         expect(getMaxPendingForPlan(undefined)).toBe(4)
+    })
+
+    test('getPendingAbsencesBeforeAttendanceUpdate descuenta la ausencia actual si ya estaba en el snapshot', () => {
+        const snapshot = {
+            absencesCount: 2,
+            bookedCount: 0,
+            consumedAbsences: 0,
+            pendingAbsences: 2,
+            adjustmentBookedCount: 0,
+        }
+        const previousAttendance = {
+            attendanceStatus: 'absent',
+            isDayOnly: false,
+            isRecovery: false,
+            isOverflowAbsence: false,
+        }
+
+        const pendingBeforeCurrent = getPendingAbsencesBeforeAttendanceUpdate(
+            snapshot,
+            previousAttendance,
+            { year: 2025, month: 9, day: 4, hour: 18, minute: 0 },
+        )
+
+        expect(pendingBeforeCurrent).toBe(1)
+        expect(shouldOverflowNewAbsence(pendingBeforeCurrent, 2)).toBe(false)
+    })
+
+    test('getPendingAbsencesBeforeAttendanceUpdate no descuenta overflow previo ni asistencias de hoy', () => {
+        const snapshot = {
+            absencesCount: 2,
+            bookedCount: 0,
+            consumedAbsences: 0,
+            pendingAbsences: 2,
+            adjustmentBookedCount: 0,
+        }
+
+        expect(
+            getPendingAbsencesBeforeAttendanceUpdate(
+                snapshot,
+                {
+                    attendanceStatus: 'absent',
+                    isDayOnly: false,
+                    isRecovery: false,
+                    isOverflowAbsence: true,
+                },
+                { year: 2025, month: 9, day: 4, hour: 18, minute: 0 },
+            ),
+        ).toBe(2)
+
+        expect(
+            getPendingAbsencesBeforeAttendanceUpdate(
+                snapshot,
+                {
+                    attendanceStatus: 'absent',
+                    isDayOnly: false,
+                    isRecovery: false,
+                    isOverflowAbsence: false,
+                },
+                { year: 2025, month: 9, day: 5, hour: 18, minute: 0 },
+            ),
+        ).toBe(2)
     })
 
     test('getAbsenceAndBookingSnapshot: bookings con ajuste NO consumen ausencias', async () => {

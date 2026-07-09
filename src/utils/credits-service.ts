@@ -122,6 +122,21 @@ export type SnapshotInfo = {
 	adjustmentBookedCount: number
 }
 
+type AttendanceDateParts = {
+	year: number
+	month: number
+	day: number
+	hour?: number
+	minute?: number
+}
+
+type AttendanceSnapshotItem = {
+	attendanceStatus?: string
+	isDayOnly?: boolean
+	isRecovery?: boolean
+	isOverflowAbsence?: boolean
+} | null | undefined
+
 const ZERO_SNAPSHOT: SnapshotInfo = {
 	absencesCount: 0,
 	bookedCount: 0,
@@ -330,16 +345,56 @@ export async function getAvailableCreditsForStudent(studentId: string) {
 	return computeAvailableCreditsFromSnapshot(user, snapshot)
 }
 
+function isAbsenceStatus(attendanceStatus?: string): boolean {
+	return attendanceStatus === 'absent' || attendanceStatus === 'sick'
+}
+
+function isSnapshotCountableAbsence(item: AttendanceSnapshotItem): boolean {
+	return Boolean(
+		item &&
+			isAbsenceStatus(item.attendanceStatus) &&
+			!item.isDayOnly &&
+			!item.isRecovery &&
+			!item.isOverflowAbsence,
+	)
+}
+
+function isAttendanceDateIncludedInSnapshot(
+	date: AttendanceDateParts,
+	now: Date = getCurrentDateInHouston(),
+): boolean {
+	const yesterday = new Date(now)
+	yesterday.setDate(yesterday.getDate() - 1)
+	const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999)
+	const attendanceDate = new Date(date.year, date.month - 1, date.day, date.hour ?? 0, date.minute ?? 0)
+
+	return attendanceDate <= yesterdayEnd
+}
+
+export function getPendingAbsencesBeforeAttendanceUpdate(
+	snapshot: SnapshotInfo | undefined,
+	previousAttendance: AttendanceSnapshotItem,
+	attendanceDate: AttendanceDateParts,
+): number {
+	const pendingAbsences = snapshot?.pendingAbsences ?? 0
+
+	if (isSnapshotCountableAbsence(previousAttendance) && isAttendanceDateIncludedInSnapshot(attendanceDate)) {
+		return Math.max(0, pendingAbsences - 1)
+	}
+
+	return pendingAbsences
+}
+
 // Determina si una nueva ausencia debería marcarse como overflow dados los contadores actuales
 export function shouldOverflowNewAbsence(currentPendingAbsences: number, planMaxPending: number): boolean {
 	// Si ya alcanzó el tope de ausencias contables, la siguiente ausencia es overflow
 	return currentPendingAbsences >= planMaxPending
 }
 
-// Recalcula overflow tras un cambio de plan (solo agrega overflow; no lo remueve).
+// Recalcula overflow tras un cambio de plan, removiendo marcas obsoletas.
 export async function enforceOverflowAfterPlanDowngrade(studentId: string, newPlan: TEnrollmentPlan) {
 	const planMax = getMaxPendingForPlan(newPlan)
-	const { bookedCount } = await getAbsenceAndBookingSnapshot(studentId)
+	const { bookedCount, adjustmentBookedCount } = await getAbsenceAndBookingSnapshot(studentId)
 
 	const items = await StudentAttendance.aggregate([
 		// Histórico: sin filtro por año. Match temprano por alumno para reducir carga.
@@ -370,40 +425,42 @@ export async function enforceOverflowAfterPlanDowngrade(studentId: string, newPl
 	])
 
 	let countable = 0
-	let recoveredToSkip = Math.min(bookedCount, items.length)
+	let recoveredToSkip = Math.min(Math.max(0, bookedCount - adjustmentBookedCount), items.length)
 	const updates: { filter: any; update: any }[] = []
 
 	for (const it of items) {
 		const subId = it.attendance?._id
 		const alreadyOverflow = Boolean(it.attendance?.isOverflowAbsence)
-
-		if (alreadyOverflow) {
-			continue
-		}
+		const currentReason = it.attendance?.overflowReason
+		let shouldBeOverflow = false
 
 		if (recoveredToSkip > 0) {
 			recoveredToSkip -= 1
-			continue
+		} else if (shouldOverflowNewAbsence(countable, planMax)) {
+			shouldBeOverflow = true
+		} else {
+			countable += 1
 		}
 
-		if (shouldOverflowNewAbsence(countable, planMax)) {
+		if (shouldBeOverflow) {
+			if (!alreadyOverflow || !currentReason) {
+				updates.push({
+					filter: { _id: it._id, 'attendance._id': subId },
+					update: {
+						$set: {
+							'attendance.$.isOverflowAbsence': true,
+							'attendance.$.overflowReason': currentReason || 'plan-downgrade',
+						},
+					},
+				})
+			}
+		} else if (alreadyOverflow || currentReason) {
 			updates.push({
 				filter: { _id: it._id, 'attendance._id': subId },
 				update: {
-					$set: {
-						'attendance.$.isOverflowAbsence': true,
-						'attendance.$.overflowReason': 'plan-downgrade',
-					},
+					$set: { 'attendance.$.isOverflowAbsence': false },
+					$unset: { 'attendance.$.overflowReason': '' },
 				},
-			})
-			continue
-		}
-
-		countable += 1
-		if (it.attendance?.overflowReason) {
-			updates.push({
-				filter: { _id: it._id, 'attendance._id': subId },
-				update: { $unset: { 'attendance.$.overflowReason': '' } },
 			})
 		}
 	}
